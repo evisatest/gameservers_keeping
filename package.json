@@ -1,11 +1,16 @@
+
 {
   "name": "gamechi-auto-renew",
   "version": "1.0.0",
   "description": "A Cloudflare Worker for automatically renewing Gamechi servers, with a web UI for management.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "build": "esbuild index.js --bundle --outfile=dist/worker.js --format=esm --loader:.html=text --loader:.css=text"
   },
   "author": "Pungwing",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.14.38"
+  }
 }

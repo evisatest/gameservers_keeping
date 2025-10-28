@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>续期管理面板</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>续期管理面板</h1>
+      <button id="logout-btn" onclick="location.href='/logout'">登出</button>
+    </header>
+    
+    <div id="variables-list">
+      <!-- Server items will be dynamically inserted here -->
+    </div>
+
+    <div class="footer-actions">
+      <button id="add-variable" class="btn btn-primary">添加服务器</button>
+      <button id="save-all" class="btn btn-save">保存所有更改</button>
+    </div>
+  </div>
+
+  <template id="server-template">
+    <div class="variable-item">
+      <div class="variable-summary">
+        <span class="server-name">新服务器</span>
+        <div class="summary-actions">
+          <span class="status-indicator"></span>
+          <button class="btn-toggle-details">详情</button>
+        </div>
+      </div>
+      <div class="variable-details" style="display: none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>服务器名称</label>
+            <input type="text" data-key="name" placeholder="例如：我的主服务器 (可选)">
+          </div>
+          <div class="form-group">
+            <label>服务器ID</label>
+            <input type="text" data-key="serverId" placeholder="服务器的唯一标识">
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="text" data-key="apiKey" placeholder="用于API认证的密钥">
+          </div>
+          <div class="form-group">
+            <label>续期URL</label>
+            <input type="text" data-key="renewUrl" placeholder="完整的续期请求地址">
+          </div>
+          <div class="form-group full-width">
+            <label>续期时间 (HH:mm)</label>
+            <div class="time-inputs">
+              <!-- Time inputs will be added here -->
+            </div>
+            <button class="btn btn-add-time">添加时间</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-delete">删除服务器</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const variablesList = document.getElementById('variables-list');
+      const addVariableBtn = document.getElementById('add-variable');
+      const saveAllBtn = document.getElementById('save-all');
+      const serverTemplate = document.getElementById('server-template');
+      let servers = [];
+
+      // Fetch initial data
+      fetch('/api/variables')
+        .then(response => response.json())
+        .then(data => {
+          servers = data;
+          render();
+        });
+
+      function createServerElement(server, index) {
+        const templateClone = serverTemplate.content.cloneNode(true);
+        const serverElement = templateClone.querySelector('.variable-item');
+        serverElement.dataset.index = index;
+
+        const nameInput = serverElement.querySelector('[data-key="name"]');
+        const serverIdInput = serverElement.querySelector('[data-key="serverId"]');
+        const apiKeyInput = serverElement.querySelector('[data-key="apiKey"]');
+        const renewUrlInput = serverElement.querySelector('[data-key="renewUrl"]');
+        const serverName = serverElement.querySelector('.server-name');
+        
+        nameInput.value = server.name || '';
+        serverIdInput.value = server.serverId || '';
+        apiKeyInput.value = server.apiKey || '';
+        renewUrlInput.value = server.renewUrl || '';
+        serverName.textContent = server.name || '新服务器';
+
+        const timeInputsContainer = serverElement.querySelector('.time-inputs');
+        timeInputsContainer.innerHTML = '';
+        (server.renewalTimes || []).forEach(time => {
+          const timeGroup = createTimeInput(time);
+          timeInputsContainer.appendChild(timeGroup);
+        });
+
+        // Update server name in summary when typing
+        nameInput.addEventListener('input', () => {
+          serverName.textContent = nameInput.value || '新服务器';
+        });
+
+        return serverElement;
+      }
+
+      function createTimeInput(time) {
+        const div = document.createElement('div');
+        div.className = 'time-input-group';
+        div.innerHTML = `
+          <input type="time" class="time-input" value="${time}">
+          <button type="button" class="btn-delete-time">&times;</button>
+        `;
+        return div;
+      }
+
+      function render() {
+        variablesList.innerHTML = '';
+        servers.sort((a, b) => {
+          const numA = parseInt(a.serverId, 10);
+          const numB = parseInt(b.serverId, 10);
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          if (!isNaN(numA)) return -1;
+          if (!isNaN(numB)) return 1;
+          return 0;
+        });
+        servers.forEach((server, index) => {
+          const serverElement = createServerElement(server, index);
+          variablesList.appendChild(serverElement);
+        });
+      }
+
+      addVariableBtn.addEventListener('click', () => {
+        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [] });
+        render();
+      });
+
+      variablesList.addEventListener('input', (e) => {
+        const target = e.target;
+        const variableItem = target.closest('.variable-item');
+        if (!variableItem) return;
+
+        const index = variableItem.dataset.index;
+        
+        if (target.matches('[data-key]')) {
+          servers[index][target.dataset.key] = target.value;
+        }
+      });
+
+      variablesList.addEventListener('click', (e) => {
+        const target = e.target;
+        const variableItem = target.closest('.variable-item');
+        if (!variableItem) return;
+
+        const index = variableItem.dataset.index;
+
+        if (target.classList.contains('btn-toggle-details')) {
+          const details = variableItem.querySelector('.variable-details');
+          details.style.display = details.style.display === 'none' ? 'block' : 'none';
+          target.textContent = details.style.display === 'none' ? '详情' : '收起';
+        } else if (target.classList.contains('btn-add-time')) {
+          const timeInputsContainer = variableItem.querySelector('.time-inputs');
+          timeInputsContainer.appendChild(createTimeInput(''));
+        } else if (target.classList.contains('btn-delete-time')) {
+          target.closest('.time-input-group').remove();
+        } else if (target.classList.contains('btn-delete')) {
+          servers.splice(index, 1);
+          render();
+        }
+      });
+
+      saveAllBtn.addEventListener('click', () => {
+        // Before saving, collect all time inputs for each server
+        document.querySelectorAll('.variable-item').forEach((item, index) => {
+          const timeInputs = item.querySelectorAll('.time-input');
+          const renewalTimes = Array.from(timeInputs).map(input => input.value).filter(Boolean);
+          servers[index].renewalTimes = renewalTimes;
+        });
+        
+        fetch('/api/variables', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(servers)
+        }).then(response => {
+          if (response.ok) {
+            alert('保存成功!');
+          } else {
+            alert('保存失败!');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
