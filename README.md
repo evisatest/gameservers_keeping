@@ -5,7 +5,7 @@
 - **批量更新定时任务**: 现在支持一次性为多个服务器更新续期任务。
 - **自定义续期时间**: 您现在可以为每个服务器单独设置续期时间，以满足不同服务器的需求。
 - **更强的安全性**: 添加了基于用户名和密码的登录认证，以保护您的管理面板。
-- **多平台部署支持**: 新增了 Docker、Zeabur 和 Vercel 的部署指南。
+- **多平台部署支持**: 新增了 Zeabur 和 Vercel 的部署指南。
 
 这是一个可多平台部署的脚本，旨在自动为“游戏鸡”服务器续期。它提供了一个 Web UI 用于管理服务器配置，并能在续期任务完成后通过 Telegram 发送通知。
 
@@ -139,27 +139,6 @@ Vercel 主要用于部署静态网站和 Serverless Functions，但它也支持 
     部署后，在 Vercel 项目的设置中添加所需的环境变量。
     *   **注意**: 与 Zeabur 类似，Vercel 也无法直接访问 Cloudflare KV。您需要修改代码以适应 Vercel 的 Serverless 环境和存储方案（如 Vercel KV）。
 
-### 使用 Docker 部署
-
-您也可以使用 Docker 在任何支持 Docker 的环境中手动部署此应用。
-
-1.  **构建 Docker 镜像**:
-    在项目根目录下，运行以下命令来构建镜像：
-    ```bash
-    docker build -t gamechi-auto-renew .
-    ```
-2.  **运行 Docker 容器**:
-    使用以下命令运行容器。请确保将 `your_...` 替换为您的实际配置。
-    ```bash
-    docker run -d \
-      -e AUTH_USERNAME="your_username" \
-      -e AUTH_PASSWORD="your_password" \
-      -e TG_BOT_TOKEN="your_tg_bot_token" \
-      -e TG_CHAT_ID="your_tg_chat_id" \
-      --name gamechi-auto-renew \
-      gamechi-auto-renew
-    ```
-    *   **重要提示**: 此 `Dockerfile` 默认只会运行一次续期任务然后退出。如果您希望它作为定时任务运行，您需要在宿主机上设置一个 cron job 来执行 `docker start gamechi-auto-renew`。
 
 ## 🛠️ 使用方法
 
