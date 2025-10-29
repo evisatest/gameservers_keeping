@@ -1,0 +1,12 @@
+# .dockerignore
+
+# Ignore node_modules
+node_modules
+
+# Ignore version control folders
+.git
+.github
+
+# Ignore Dockerfile
+Dockerfile
+.dockerignore
