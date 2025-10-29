@@ -452,10 +452,18 @@ const indexHtml = `<!DOCTYPE html>
 
       // Fetch initial data
       fetch('/api/variables')
-        .then(response => response.json())
+        .then(response => {
+          if (response.status === 401) {
+            window.location.href = '/login.html';
+            return;
+          }
+          return response.json();
+        })
         .then(data => {
-          servers = data;
-          render();
+          if (data) {
+            servers = data;
+            render();
+          }
         });
 
       function createServerElement(server, index) {
@@ -498,119 +506,135 @@ const indexHtml = `<!DOCTYPE html>
             btn.classList.remove('active');
           }
         });
-        
-        // Update server name in summary when typing
-        nameInput.addEventListener('input', () => {
-          serverName.textContent = nameInput.value || '新服务器';
-        });
 
         return serverElement;
       }
-
+      
       function createTimeInput(time) {
         const div = document.createElement('div');
         div.className = 'time-input-group';
-        div.innerHTML = \`
-          <input type="time" class="time-input" value="\${time}">
-          <button type="button" class="btn-delete-time">&times;</button>
-        \`;
+        div.innerHTML = `
+          <input type="time" value="${time || ''}">
+          <button class="btn-delete-time">&times;</button>
+        `;
+        div.querySelector('.btn-delete-time').addEventListener('click', () => {
+          div.remove();
+        });
         return div;
       }
 
       function render() {
         variablesList.innerHTML = '';
-        servers.sort((a, b) => {
-          const numA = parseInt(a.serverId, 10);
-          const numB = parseInt(b.serverId, 10);
-
-          if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB;
-          }
-          if (!isNaN(numA)) return -1;
-          if (!isNaN(numB)) return 1;
-          return 0;
-        });
         servers.forEach((server, index) => {
-          const serverElement = createServerElement(server, index);
-          variablesList.appendChild(serverElement);
+          const el = createServerElement(server, index);
+          variablesList.appendChild(el);
         });
       }
 
       addVariableBtn.addEventListener('click', () => {
-        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [], renewalDays: ['everyday'] });
+        servers.push({ renewalTimes: [], renewalDays: ['everyday'] });
         render();
       });
 
-      variablesList.addEventListener('input', (e) => {
+      variablesList.addEventListener('click', e => {
         const target = e.target;
-        const variableItem = target.closest('.variable-item');
-        if (!variableItem) return;
+        const serverItem = target.closest('.variable-item');
+        if (!serverItem) return;
 
-        const index = variableItem.dataset.index;
+        const index = parseInt(serverItem.dataset.index, 10);
         
-        if (target.matches('[data-key]')) {
-          servers[index][target.dataset.key] = target.value;
-        }
-      });
-
-      variablesList.addEventListener('click', (e) => {
-        const target = e.target;
-        const variableItem = target.closest('.variable-item');
-        if (!variableItem) return;
-
-        const index = variableItem.dataset.index;
-
         if (target.classList.contains('btn-toggle-details')) {
-          const details = variableItem.querySelector('.variable-details');
+          const details = serverItem.querySelector('.variable-details');
           details.style.display = details.style.display === 'none' ? 'block' : 'none';
-          target.textContent = details.style.display === 'none' ? '详情' : '收起';
-        } else if (target.classList.contains('btn-add-time')) {
-          const timeInputsContainer = variableItem.querySelector('.time-inputs');
+        }
+
+        if (target.classList.contains('btn-add-time')) {
+          const timeInputsContainer = serverItem.querySelector('.time-inputs');
           timeInputsContainer.appendChild(createTimeInput(''));
-        } else if (target.classList.contains('btn-delete-time')) {
-          target.closest('.time-input-group').remove();
-        } else if (target.classList.contains('btn-delete')) {
-          servers.splice(index, 1);
-          render();
-        } else if (target.classList.contains('day-btn')) {
+        }
+        
+        if (target.classList.contains('btn-delete')) {
+          if (confirm('确定要删除这个服务器配置吗？')) {
+            servers.splice(index, 1);
+            render();
+          }
+        }
+        
+        if (target.classList.contains('day-btn')) {
           const day = target.dataset.day;
-          const daySelector = target.parentElement;
+          const server = servers[index];
+          server.renewalDays = server.renewalDays || [];
           
+          const daySelector = target.parentElement;
+
           if (day === 'everyday') {
-            daySelector.querySelectorAll('.day-btn').forEach(btn => {
-              btn.classList.remove('active');
-            });
-            target.classList.add('active');
+             server.renewalDays = ['everyday'];
+             daySelector.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+             target.classList.add('active');
           } else {
-            daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
-            target.classList.toggle('active');
+             const everydayBtn = daySelector.querySelector('[data-day="everyday"]');
+             if (server.renewalDays.includes('everyday')) {
+                server.renewalDays = [];
+                everydayBtn.classList.remove('active');
+             }
+
+             const dayIndex = server.renewalDays.indexOf(day);
+             if (dayIndex > -1) {
+                server.renewalDays.splice(dayIndex, 1);
+                target.classList.remove('active');
+             } else {
+                server.renewalDays.push(day);
+                target.classList.add('active');
+             }
           }
         }
       });
-
+      
       saveAllBtn.addEventListener('click', () => {
-        // Before saving, collect all time inputs and day selections for each server
-        document.querySelectorAll('.variable-item').forEach((item, index) => {
-          const timeInputs = item.querySelectorAll('.time-input');
-          const renewalTimes = Array.from(timeInputs).map(input => input.value).filter(Boolean);
-          servers[index].renewalTimes = renewalTimes;
-
-          const dayButtons = item.querySelectorAll('.day-btn.active');
-          const renewalDays = Array.from(dayButtons).map(btn => btn.dataset.day);
-          servers[index].renewalDays = renewalDays.length > 0 ? renewalDays : ['everyday'];
+        const updatedServers = [];
+        document.querySelectorAll('.variable-item').forEach(item => {
+          const server = {
+            name: item.querySelector('[data-key="name"]').value,
+            serverId: item.querySelector('[data-key="serverId"]').value,
+            apiKey: item.querySelector('[data-key="apiKey"]').value,
+            renewUrl: item.querySelector('[data-key="renewUrl"]').value,
+            renewalTimes: Array.from(item.querySelectorAll('.time-inputs input[type="time"]'))
+                                .map(input => input.value)
+                                .filter(Boolean),
+            renewalDays: Array.from(item.querySelectorAll('.day-selector .day-btn.active'))
+                               .map(btn => btn.dataset.day)
+          };
+          updatedServers.push(server);
         });
-        
+
         fetch('/api/variables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(servers)
-        }).then(response => {
+          body: JSON.stringify(updatedServers),
+        })
+        .then(response => {
           if (response.ok) {
-            alert('保存成功!');
+            alert('所有配置已保存！');
+            servers = updatedServers;
+            render();
           } else {
-            alert('保存失败!');
+            alert('保存失败，请检查网络或刷新页面重试。');
           }
         });
+      });
+      
+      document.getElementById('refresh-status').addEventListener('click', () => {
+         // Placeholder for status refresh logic
+         alert('状态刷新功能待实现。');
+      });
+
+      document.getElementById('trigger-all').addEventListener('click', () => {
+        if (confirm('确定要立即触发所有服务器的续期吗？这可能会消耗大量资源。')) {
+          fetch('/api/trigger-all', { method: 'POST' })
+            .then(response => response.text())
+            .then(message => alert(message))
+            .catch(err => alert('触发失败: ' + err));
+        }
       });
     });
   </script>
@@ -618,411 +642,316 @@ const indexHtml = `<!DOCTYPE html>
 </html>
 `;
 
-// =================================================================================
-// 主入口点: 监听 fetch 和 scheduled 事件
-// =================================================================================
-
-export default {
-  /**
-   * 监听 HTTP 请求 (用于 UI 和 API)
-   * @param {Request} request
-   * @param {object} env
-   * @param {ExecutionContext} ctx
-   */
-  async fetch(request, env, ctx) {
-    return handleFetch(request, env, ctx);
-  },
-
-  /**
-   * 监听计划任务 (用于定时续期)
-   * @param {ScheduledController} controller
-   * @param {object} env
-   * @param {ExecutionContext} ctx
-   */
-  async scheduled(controller, env, ctx) {
-    ctx.waitUntil(handleScheduled(env));
-  },
-};
-
-// =================================================================================
-// 核心功能: 定时续期处理
-// =================================================================================
+// --- 中间件和路由 ---
 
 /**
- * 处理计划任务的核心函数
- * @param {object} env
- */
-async function handleScheduled(env) {
-  const timestamp = () => '[' + new Date().toISOString() + ']';
-  console.log(timestamp() + ' 🚀 开始执行自动续期任务...');
-
-  let servers = await getServersConfig(env);
-
-  if (!servers || servers.length === 0) {
-    const message = "⚠️ 配置为空，没有可续期的服务器。请通过 UI 添加配置。";
-    console.warn(timestamp() + ' ' + message);
-    await sendTelegramNotification(message, env);
-    return;
-  }
-
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-  const currentDay = now.getDay().toString(); // Sunday = 0, Monday = 1, etc.
-  const currentHour = now.getHours().toString().padStart(2, '0');
-  const currentMinute = now.getMinutes().toString().padStart(2, '0');
-  const currentTime = currentHour + ':' + currentMinute;
-  
-  console.log(timestamp() + ' ℹ️ 当前时间 (上海): ' + currentTime + '。检测到 ' + servers.length + ' 台服务器配置。');
-
-  const serversToRenew = servers.filter(server => {
-    const renewalDays = server.renewalDays || ['everyday'];
-    const shouldRenewToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
-
-    if (!shouldRenewToday) {
-      return false;
-    }
-
-    // If renewalTimes is not set or empty, renew every time.
-    if (!server.renewalTimes || server.renewalTimes.length === 0) {
-      return true;
-    }
-    // Check if the current time is in the renewalTimes array.
-    return server.renewalTimes.includes(currentTime);
-  });
-
-  if (serversToRenew.length === 0) {
-    console.log(timestamp() + ' ℹ️ 当前时间没有需要续期的服务器。任务结束。');
-    return;
-  }
-
-  console.log(timestamp() + ' ℹ️ 发现 ' + serversToRenew.length + ' 台服务器需要在此时间续期。');
-
-  const results = await Promise.allSettled(
-    serversToRenew.map(server => renewServer(server, timestamp))
-  );
-
-  console.log(timestamp() + ' ✅ 所有需要续期的服务器任务已处理完毕。');
-
-  // --- Generate and send notification ---
-  let successCount = 0;
-  let failedCount = 0;
-  const summary = results.map((result, index) => {
-    const server = serversToRenew[index];
-    const serverName = server.name || '服务器 #' + (servers.indexOf(server) + 1);
-    if (result.status === 'fulfilled' && result.value.startsWith('成功')) {
-      successCount++;
-      return '✅ ' + serverName + ': 续期成功。';
-    } else {
-      failedCount++;
-      const reason = (result.status === 'rejected') ? result.reason.message : result.value;
-      return '❌ ' + serverName + ': 失败 - ' + reason;
-    }
-  }).join('\\n');
-
-  const title = 'Gamechi 自动续期报告';
-  const finalMessage = title + '\\n\\n总览: ' + successCount + ' 成功, ' + failedCount + ' 失败。\\n\\n' + summary;
-  
-  console.log(finalMessage);
-  await sendTelegramNotification(finalMessage, env);
-}
-
-/**
- * 从 KV 或环境变量中获取服务器配置
- * @param {object} env
- * @returns {Promise<Array>}
- */
-async function getServersConfig(env) {
-  if (!env.AUTO_RENEW_KV) {
-    console.error("❌ KV 命名空间 'AUTO_RENEW_KV' 未绑定。请检查 wrangler.toml 配置。");
-    return [];
-  }
-  
-  let servers = await env.AUTO_RENEW_KV.get(KV_CONFIG_KEY, "json");
-  
-  // 如果 KV 为空，尝试从环境变量 SERVERS_CONFIG (旧版) 迁移
-  if (!servers && env.SERVERS_CONFIG) {
-    console.log("ℹ️ 检测到旧版 SERVERS_CONFIG，正在尝试迁移到 KV...");
-    try {
-      servers = JSON.parse(env.SERVERS_CONFIG);
-      if (Array.isArray(servers)) {
-        await env.AUTO_RENEW_KV.put(KV_CONFIG_KEY, JSON.stringify(servers));
-        console.log("✅ 成功将 SERVERS_CONFIG 迁移到 KV。");
-      } else {
-        servers = [];
-      }
-    } catch (e) {
-      console.error("❌ 解析旧版 SERVERS_CONFIG 失败:", e.message);
-      servers = [];
-    }
-  }
-  
-  servers = Array.isArray(servers) ? servers : [];
-
-  // --- Data Migration: renewalTime to renewalTimes ---
-  // This ensures backward compatibility with the old data structure.
-  let needsUpdate = false;
-  servers.forEach(server => {
-    if (typeof server.renewalTime === 'string') {
-      server.renewalTimes = server.renewalTime ? [server.renewalTime] : [];
-      delete server.renewalTime;
-      needsUpdate = true;
-    }
-  });
-
-  // If we migrated any data, save it back to KV.
-  if (needsUpdate) {
-    console.log("🔄 正在将旧的 renewalTime 格式迁移到 renewalTimes...");
-    await env.AUTO_RENEW_KV.put(KV_CONFIG_KEY, JSON.stringify(servers));
-    console.log("✅ 数据结构迁移完成。");
-  }
-
-  return servers;
-}
-
-/**
- * 为单个服务器发送续期请求
- * @param {object} server
- * @param {function} timestamp
- */
-async function renewServer(server, timestamp) {
-  const serverName = server.name || '(未命名: ' + server.serverId + ')';
-  
-  if (!server.apiKey || !server.serverId || !server.renewUrl) {
-    throw new Error('配置不完整 (缺少 apiKey, serverId, 或 renewUrl)');
-  }
-  
-  console.log(timestamp() + ' 🔄 开始为 "' + serverName + '" 续期...');
-
-  try {
-    const response = await fetch(server.renewUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + server.apiKey,
-        'User-Agent': 'Cloudflare-Worker-Gameji-Auto-Renew/2.0',
-      },
-      body: JSON.stringify({ server_id: server.serverId }),
-    });
-
-    if (response.status === 200) {
-      console.log(timestamp() + ' ✅ 续期成功: "' + serverName + '"');
-      return '成功';
-    }
-
-    const messages = {
-      400: '请求无效(400)，可能今日已续期',
-      404: '未找到服务器(404)',
-      419: '授权过期(419)',
-      403: '无权访问(403)',
-    };
-    const message = messages[response.status] || '返回码: ' + response.status;
-    console.error(timestamp() + ' ❌ 续期失败: "' + serverName + '" - ' + message);
-    throw new Error(message);
-
-  } catch (error) {
-    console.error(timestamp() + ' ❌ 续期请求异常: "' + serverName + '" - ' + error.message);
-    throw error;
-  }
-}
-
-
-// =================================================================================
-// HTTP 请求处理 (Web UI 和 API)
-// =================================================================================
-
-/**
- * 主 HTTP 请求处理器
+ * 验证请求是否已经过身份验证
  * @param {Request} request
- * @param {object} env
+ * @param {any} env
+ * @returns {Promise<boolean>}
  */
-async function handleFetch(request, env, ctx) {
-  const url = new URL(request.url);
-
-  // API routes are handled first
-  if (url.pathname.startsWith('/api/')) {
-    return handleApiRequest(request, env, ctx);
-  }
-
-  // Serve static assets
-  if (url.pathname === '/style.css') {
-    return new Response(styleCss, { headers: { 'Content-Type': 'text/css' } });
-  }
-
-  const isAuthenticated = await checkAuth(request, env);
-
-  if (!isAuthenticated) {
-    if (url.pathname === '/login.html' || url.pathname === '/login') {
-      return new Response(loginHtml, { headers: { 'Content-Type': 'text/html' } });
-    }
-    return Response.redirect(url.origin + '/login.html', 302);
-  }
-
-  // If authenticated, serve the main page
-  if (url.pathname === '/' || url.pathname === '/index.html') {
-    return new Response(indexHtml, { headers: { 'Content-Type': 'text/html' } });
-  }
-  
-  // If authenticated and trying to access login, redirect to main page
-  if (url.pathname === '/login.html' || url.pathname === '/login') {
-    return Response.redirect(url.origin + '/', 302);
-  }
-
-  // Fallback for any other path
-  return new Response('Not Found', { status: 404 });
-}
-
-/**
- * API 请求处理器
- * @param {Request} request
- * @param {object} env
- */
-async function handleApiRequest(request, env, ctx) {
-    const url = new URL(request.url);
-
-    // Login doesn't require auth
-    if (url.pathname === '/api/login') {
-        return handleLogin(request, env);
-    }
-    
-    // All other API routes require auth
-    const isAuthenticated = await checkAuth(request, env);
-    if (!isAuthenticated) {
-        return new Response('Unauthorized', { status: 401 });
-    }
-
-    switch (url.pathname) {
-        case '/api/logout':
-            return handleLogout();
-        case '/api/variables':
-            if (request.method === 'GET') {
-                const servers = await getServersConfig(env);
-                return new Response(JSON.stringify(servers || []), { headers: { 'Content-Type': 'application/json' } });
-            } else if (request.method === 'POST') {
-                const servers = await request.json();
-                await env.AUTO_RENEW_KV.put(KV_CONFIG_KEY, JSON.stringify(servers));
-                return new Response('Configuration saved', { status: 200 });
-            }
-            break;
-        case '/api/trigger-all':
-            if (request.method === 'POST') {
-                ctx.waitUntil(handleScheduled(env));
-                return new Response(JSON.stringify({ message: "所有续期任务已手动触发" }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            }
-            break;
-    }
-    return new Response('API Endpoint Not Found', { status: 404 });
-}
-
-
-// =================================================================================
-// 认证功能
-// =================================================================================
-
-/**
- * 检查用户是否已认证
- * @param {Request} request
- * @param {object} env
- */
-async function checkAuth(request, env) {
+async function isAuthenticated(request, env) {
   const cookie = request.headers.get('Cookie');
   if (!cookie || !cookie.includes(AUTH_COOKIE_NAME)) {
     return false;
   }
 
-  const token = cookie.split(AUTH_COOKIE_NAME + '=')[1].split(';')[0];
-  const storedToken = await env.AUTO_RENEW_KV.get('auth_token');
-
-  if (!token || !storedToken || token !== storedToken) {
+  const token = cookie.split(';').find(c => c.trim().startsWith(AUTH_COOKIE_NAME + '='));
+  if (!token) {
     return false;
   }
 
-  return true;
+  const authToken = token.split('=')[1];
+  const storedToken = await env.KV_NAMESPACE.get('auth_token');
+
+  return authToken === storedToken && storedToken !== null;
 }
+
+/**
+ * 处理HTTP请求
+ * @param {Request} request
+ * @param {any} env
+ * @param {any} ctx
+ * @returns {Promise<Response>}
+ */
+async function handleRequest(request, env, ctx) {
+  const url = new URL(request.url);
+
+  // 登录页面和API端点等公共资源不需要身份验证
+  if (url.pathname === '/login.html' || url.pathname === '/api/login' || url.pathname === '/style.css') {
+    return serveAsset(request, env, ctx);
+  }
+
+  // 检查身份验证
+  const authenticated = await isAuthenticated(request, env);
+  if (!authenticated) {
+    // 对于API请求，返回401 Unauthorized
+    if (url.pathname.startsWith('/api/')) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+    // 对于页面请求，重定向到登录页面
+    return Response.redirect(url.origin + '/login.html', 302);
+  }
+
+  // 对于已认证的请求，提供资源
+  return serveAsset(request, env, ctx);
+}
+
+
+/**
+ * 提供静态资源或API路由
+ * @param {Request} request
+ * @param {any} env
+ * @param {any} ctx
+ * @returns {Promise<Response>}
+ */
+async function serveAsset(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+  
+  // 静态资源
+  if (path === '/style.css') {
+    return new Response(styleCss, { headers: { 'Content-Type': 'text/css' } });
+  }
+  if (path === '/login.html') {
+    return new Response(loginHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
+  if (path === '/') {
+    return new Response(indexHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  }
+
+  // API 路由
+  if (path === '/api/login') {
+    return handleLogin(request, env);
+  }
+  if (path === '/api/logout') {
+    return handleLogout(request);
+  }
+  if (path === '/api/variables' && request.method === 'GET') {
+    return handleGetVariables(request, env);
+  }
+  if (path === '/api/variables' && request.method === 'POST') {
+    return handlePostVariables(request, env);
+  }
+   if (path === '/api/trigger-all' && request.method === 'POST') {
+    ctx.waitUntil(handleScheduled(env,null));
+    return new Response('所有续期任务已手动触发', { status: 200 });
+  }
+
+  return new Response('Not Found', { status: 404 });
+}
+
+// --- API 处理函数 ---
 
 /**
  * 处理登录请求
  * @param {Request} request
- * @param {object} env
+ * @param {any} env
+ * @returns {Promise<Response>}
  */
 async function handleLogin(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
   const formData = await request.formData();
   const username = formData.get('username');
   const password = formData.get('password');
+  
+  const { AUTH_USERNAME, AUTH_PASSWORD } = env;
 
-  const adminUser = env.ADMIN_USER || 'admin';
-  const adminPass = env.ADMIN_PASS;
-
-  if (!adminPass) {
-    return new Response('管理员密码未设置，请在环境变量中设置 ADMIN_PASS', { status: 500 });
-  }
-
-  if (username === adminUser && password === adminPass) {
-    const token = crypto.randomUUID();
-    await env.AUTO_RENEW_KV.put('auth_token', token, { expirationTtl: 86400 }); // 24-hour expiry
+  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+    const authToken = crypto.randomUUID();
+    await env.KV_NAMESPACE.put('auth_token', authToken, { expirationTtl: 86400 }); // 24小时过期
 
     const headers = new Headers();
-    headers.append('Set-Cookie', `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
-    headers.append('Location', '/');
+    headers.append('Set-Cookie', `${AUTH_COOKIE_NAME}=${authToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
     
-    return new Response(null, { status: 302, headers });
+    return new Response('登录成功', { status: 200, headers });
+  } else {
+    return new Response('用户名或密码错误', { status: 401 });
   }
-
-  return new Response('用户名或密码错误', { status: 401 });
 }
 
 /**
  * 处理登出请求
+ * @param {Request} request
+ * @returns {Promise<Response>}
  */
-function handleLogout() {
+function handleLogout(request) {
   const headers = new Headers();
   headers.append('Set-Cookie', `${AUTH_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
-  headers.append('Location', '/login');
-  return new Response(null, { status: 302, headers });
+  
+  const url = new URL(request.url);
+  return Response.redirect(url.origin + '/login.html', {
+    status: 302,
+    headers: headers
+  });
 }
 
 
-// =================================================================================
-// 通知功能
-// =================================================================================
+/**
+ * 获取服务器配置
+ * @param {Request} request
+ * @param {any} env
+ * @returns {Promise<Response>}
+ */
+async function handleGetVariables(request, env) {
+  const config = await env.KV_NAMESPACE.get(KV_CONFIG_KEY, 'json') || [];
+  return new Response(JSON.stringify(config), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 /**
- * 发送 Telegram 通知
- * @param {string} message
- * @param {object} env
+ * 更新服务器配置
+ * @param {Request} request
+ * @param {any} env
+ * @returns {Promise<Response>}
  */
-async function sendTelegramNotification(message, env) {
-  const botToken = env.TELEGRAM_BOT_TOKEN;
-  const chatId = env.TELEGRAM_CHAT_ID;
+async function handlePostVariables(request, env) {
+  try {
+    const config = await request.json();
+    await env.KV_NAMESPACE.put(KV_CONFIG_KEY, JSON.stringify(config));
+    return new Response('配置已保存', { status: 200 });
+  } catch (e) {
+    return new Response(`保存配置时出错: ${e.message}`, { status: 500 });
+  }
+}
 
-  if (!botToken || !chatId) {
-    console.log('ℹ️ 未配置 Telegram token 或 chat ID，跳过发送通知。');
+// --- 定时任务处理 ---
+
+/**
+ * 处理定时触发的续期任务
+ * @param {any} env
+ * @param {any} controller
+ */
+async function handleScheduled(env,controller) {
+  try {
+    const config = await env.KV_NAMESPACE.get(KV_CONFIG_KEY, 'json');
+    if (!config || config.length === 0) {
+      console.log('没有配置，跳过续期。');
+      return;
+    }
+
+    const now = new Date();
+    const currentDay = now.getDay().toString(); // 0 for Sunday, 1 for Monday, etc.
+    const currentTime = now.toTimeString().slice(0, 5); // HH:mm
+    
+    console.log(`当前时间: ${currentTime}, 星期${currentDay}`);
+    
+    let renewalTasks = [];
+
+    for (const server of config) {
+      if (!server.renewalTimes || server.renewalTimes.length === 0) continue;
+
+      const renewalDays = server.renewalDays || ['everyday'];
+      const shouldRunToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
+      
+      if (shouldRunToday && server.renewalTimes.includes(currentTime)) {
+        renewalTasks.push(renewServer(server, env));
+      }
+    }
+
+    if (renewalTasks.length > 0) {
+      await Promise.all(renewalTasks);
+      const message = `成功为 ${renewalTasks.length} 个服务器续期。`;
+      console.log(message);
+      await sendTelegramNotification(env, message);
+    } else {
+      console.log('没有在当前时间需要续期的服务器。');
+    }
+  } catch (e) {
+    console.error(`执行定时任务时出错: ${e.message}`);
+    await sendTelegramNotification(env, `执行定时任务时出错: ${e.message}`);
+  }
+}
+
+// --- 核心业务逻辑 ---
+
+/**
+ * 为单个服务器续期
+ * @param {object} serverConfig
+ * @param {any} env
+ */
+async function renewServer(serverConfig, env) {
+  const { name, serverId, apiKey, renewUrl } = serverConfig;
+  const serverIdentifier = name || serverId;
+  
+  console.log(`正在为服务器 ${serverIdentifier} 续期...`);
+
+  try {
+    const response = await fetch(renewUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        server_id: serverId,
+        api_key: apiKey,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.message === 'Renew request sent successfully.') {
+      const successMsg = `服务器 ${serverIdentifier} 续期成功。`;
+      console.log(successMsg);
+      await sendTelegramNotification(env, successMsg);
+    } else {
+      const errorMsg = `服务器 ${serverIdentifier} 续期失败: ${result.message || response.statusText}`;
+      console.error(errorMsg);
+      await sendTelegramNotification(env, errorMsg);
+    }
+  } catch (error) {
+    const errorMsg = `为服务器 ${serverIdentifier} 续期时发生网络错误: ${error.message}`;
+    console.error(errorMsg);
+    await sendTelegramNotification(env, errorMsg);
+  }
+}
+
+// --- 辅助函数 ---
+
+/**
+ * 发送Telegram通知
+ * @param {any} env
+ * @param {string} message
+ */
+async function sendTelegramNotification(env, message) {
+  const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = env;
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.log('未配置Telegram通知，跳过发送。');
     return;
   }
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-  const payload = {
-    chat_id: chatId,
-    text: message,
-    parse_mode: 'Markdown',
-  };
-
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   try {
-    const response = await fetch(url, {
+    const response = await fetch(url,.
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+      }),
     });
-
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`❌ 发送 Telegram 通知失败: ${response.status} ${response.statusText}`, errorBody);
-    } else {
-      console.log('✅ Telegram 通知已发送。');
+      console.error(`发送Telegram通知失败: ${response.statusText}`);
     }
-  } catch (error) {
-    console.error('❌ 发送 Telegram 通知时发生网络错误:', error);
+  } catch (e) {
+    console.error(`发送Telegram通知时出错: ${e.message}`);
   }
 }
+
+
+// --- Worker 入口 ---
+
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env, ctx);
+  },
+  async scheduled(controller, env, ctx) {
+    await handleScheduled(env, controller);
+  },
+};

@@ -53,15 +53,15 @@ npm install -g wrangler
 此 Worker 使用 Cloudflare KV 来存储服务器配置。您需要创建一个 KV 命名空间。
 
 ```bash
-wrangler kv:namespace create "AUTO_RENEW_KV"
+wrangler kv:namespace create "KV_NAMESPACE"
 ```
 
 此命令会返回一个 `id`。请将它添加到 `wrangler.toml` 文件中，如下所示:
 
 ```toml
-[[kv_namespaces]]
-binding = "AUTO_RENEW_KV"
-id = "your_kv_namespace_id_here" # 替换为你的 ID
+kv_namespaces = [
+  { binding = "KV_NAMESPACE", id = "在此处填入您创建的KV命名空间的ID" }
+]
 ```
 
 ### 步骤 4: 配置环境变量
@@ -87,13 +87,13 @@ wrangler secret put AUTH_PASSWORD
 
 如果您希望在续期后收到 Telegram 通知，请配置以下变量：
 
--   `TG_BOT_TOKEN`: 您的 Telegram Bot Token。
--   `TG_CHAT_ID`: 您的 Telegram Chat ID。
+-   `TELEGRAM_BOT_TOKEN`: 您的 Telegram Bot Token。
+-   `TELEGRAM_CHAT_ID`: 您的 Telegram Chat ID。
 
 通过以下命令设置：
 ```bash
-wrangler secret put TG_BOT_TOKEN
-wrangler secret put TG_CHAT_ID
+wrangler secret put TELEGRAM_BOT_TOKEN
+wrangler secret put TELEGRAM_CHAT_ID
 ```
 
 > **旧版用户注意**:
