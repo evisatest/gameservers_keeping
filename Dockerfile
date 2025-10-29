@@ -16,4 +16,7 @@ COPY . .
 # This script is designed as a Cloudflare Worker and not a long-running service.
 # The following CMD will execute the script once and then the container will exit.
 # For scheduled execution, a cron job or an orchestrator like Kubernetes CronJob is recommended.
+#
+# Note: If you are experiencing DNS issues during the build process (e.g., EAI_AGAIN errors),
+# please try building the image in your local environment.
 CMD [ "node", "index.js" ]
