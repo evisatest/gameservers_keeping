@@ -21,7 +21,7 @@ dir = "public"
 # 然后将生成的 id 填充到下面的配置中。
 # =================================================================================
 kv_namespaces = [
-  { binding = "KV_NAMESPACE", id = "在此处填入您创建的KV命名空间的ID" }
+  { binding = "AUTO_RENEW_KV", id = "在此处填入您创建的KV命名空间的ID" }
 ]
 
 # =================================================================================
@@ -43,5 +43,6 @@ kv_namespaces = [
 [vars]
 AUTH_USERNAME = "admin"
 AUTH_PASSWORD = "password"
-TELEGRAM_BOT_TOKEN = ""
-TELEGRAM_CHAT_ID = ""
+TG_BOT_TOKEN = ""
+TG_CHAT_ID = ""
+SERVERS_CONFIG = ""
