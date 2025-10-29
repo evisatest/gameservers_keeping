@@ -68,22 +68,36 @@ id = "your_kv_namespace_id_here" # 替换为你的 ID
 
 在部署之前，您需要在 Cloudflare 控制台或通过 `wrangler.toml` 设置以下环境变量。
 
+#### 设置管理员认证 (重要)
+
+为了保护您的管理面板，必须设置用户名和密码。
+
 -   `AUTH_USERNAME`: 登录 Web UI 的用户名。
--   `AUTH_PASSWORD`: 登录 Web UI 的密码。
--   `TG_BOT_TOKEN` (可选): 您的 Telegram Bot Token。
--   `TG_CHAT_ID` (可选): 您的 Telegram Chat ID。
+-   `AUTH_PASSWORD`: 登录 Web UI 的密码。**请务必设置为一个强密码**。
 
-> **旧版用户注意**:
-> 如果您之前使用 `SERVERS_CONFIG` 环境变量来存储服务器列表，新版脚本会在首次运行时自动将这些数据迁移到 KV 存储中。迁移成功后，建议您从环境变量中删除 `SERVERS_CONFIG`，以确保所有配置都由 Web UI 管理。
-
-**通过 `wrangler secret put` 命令设置 (推荐):**
-
+您可以通过以下命令来设置它们：
 ```bash
 wrangler secret put AUTH_USERNAME
+# 按照提示输入您的用户名
 wrangler secret put AUTH_PASSWORD
+# 按照提示输入您的强密码
+```
+
+#### 设置 Telegram 通知 (可选)
+
+如果您希望在续期后收到 Telegram 通知，请配置以下变量：
+
+-   `TG_BOT_TOKEN`: 您的 Telegram Bot Token。
+-   `TG_CHAT_ID`: 您的 Telegram Chat ID。
+
+通过以下命令设置：
+```bash
 wrangler secret put TG_BOT_TOKEN
 wrangler secret put TG_CHAT_ID
 ```
+
+> **旧版用户注意**:
+> 如果您之前使用 `SERVERS_CONFIG` 环境变量来存储服务器列表，新版脚本会在首次运行时自动将这些数据迁移到 KV 存储中。迁移成功后，建议您从环境变量中删除 `SERVERS_CONFIG`，以确保所有配置都由 Web UI 管理。
 
 ### 步骤 5: 配置定时触发器
 
