@@ -21,5 +21,27 @@ dir = "public"
 # 然后将生成的 id 填充到下面的配置中。
 # =================================================================================
 kv_namespaces = [
-  { binding = "AUTO_RENEW_KV", id = "在此处填入您创建的KV命名空间的ID" }
+  { binding = "KV_NAMESPACE", id = "在此处填入您创建的KV命名空间的ID" }
 ]
+
+# =================================================================================
+# 环境变量
+# =================================================================================
+# 注意: 在部署前，您需要设置这些环境变量。
+# 对于生产环境，建议使用 Wrangler 的 secret 功能来管理敏感信息:
+# npx wrangler secret put AUTH_USERNAME
+# npx wrangler secret put AUTH_PASSWORD
+# npx wrangler secret put TELEGRAM_BOT_TOKEN
+# npx wrangler secret put TELEGRAM_CHAT_ID
+#
+# 对于本地开发 (npx wrangler dev)，可以在项目根目录创建一个 .dev.vars 文件，并填入以下内容:
+# AUTH_USERNAME="your_username"
+# AUTH_PASSWORD="your_password"
+# TELEGRAM_BOT_TOKEN="your_bot_token"
+# TELEGRAM_CHAT_ID="your_chat_id"
+# =================================================================================
+[vars]
+AUTH_USERNAME = "admin"
+AUTH_PASSWORD = "password"
+TELEGRAM_BOT_TOKEN = ""
+TELEGRAM_CHAT_ID = ""
