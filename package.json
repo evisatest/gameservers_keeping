@@ -1,7 +1,7 @@
 
 {
   "name": "gamechi-auto-renew",
-  "version": "1.0.0",
+  "version": "0.8.0",
   "description": "A Cloudflare Worker for automatically renewing Gamechi servers, with a web UI for management.",
   "main": "index.js",
   "scripts": {
