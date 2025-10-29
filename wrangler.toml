@@ -5,6 +5,13 @@ name = "gamechi-auto-renew" # Worker 的名称
 main = "dist/worker.js"          # 入口文件
 compatibility_date = "2023-08-01" # 兼容性日期，确保 API 行为一致性
 
+[build]
+command = "npm run build"
+[build.upload]
+format = "service-worker"
+dir = "public"
+
+
 # =================================================================================
 # KV 命名空间绑定
 # =================================================================================
@@ -16,7 +23,3 @@ compatibility_date = "2023-08-01" # 兼容性日期，确保 API 行为一致性
 kv_namespaces = [
   { binding = "AUTO_RENEW_KV", id = "在此处填入您创建的KV命名空间的ID" }
 ]
-
-[site]
-bucket = "./"
-entry-point = "workers-site"
