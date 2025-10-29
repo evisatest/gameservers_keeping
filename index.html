@@ -11,7 +11,7 @@
   <div class="container">
     <header>
       <h1>续期管理面板</h1>
-      <button id="logout-btn" onclick="location.href='/logout'">登出</button>
+      <button id="logout-btn" onclick="location.href='/api/logout'">登出</button>
     </header>
     
     <div id="variables-list">
@@ -59,6 +59,19 @@
               <!-- Time inputs will be added here -->
             </div>
             <button class="btn btn-add-time">添加时间</button>
+          </div>
+          <div class="form-group full-width">
+            <label>续期日期</label>
+            <div class="day-selector">
+              <button class="day-btn" data-day="everyday">每天</button>
+              <button class="day-btn" data-day="1">一</button>
+              <button class="day-btn" data-day="2">二</button>
+              <button class="day-btn" data-day="3">三</button>
+              <button class="day-btn" data-day="4">四</button>
+              <button class="day-btn" data-day="5">五</button>
+              <button class="day-btn" data-day="6">六</button>
+              <button class="day-btn" data-day="0">日</button>
+            </div>
           </div>
         </div>
         <div class="actions">
@@ -108,6 +121,23 @@
           timeInputsContainer.appendChild(timeGroup);
         });
 
+        const daySelector = serverElement.querySelector('.day-selector');
+        const renewalDays = server.renewalDays || ['everyday'];
+        
+        daySelector.querySelectorAll('.day-btn').forEach(btn => {
+          const day = btn.dataset.day;
+          if (renewalDays.includes(day)) {
+            btn.classList.add('active');
+          }
+
+          if (renewalDays.includes('everyday') && day !== 'everyday') {
+            btn.classList.remove('active');
+            daySelector.querySelector('[data-day="everyday"]').classList.add('active');
+          } else if (!renewalDays.includes('everyday') && day === 'everyday') {
+            btn.classList.remove('active');
+          }
+        });
+        
         // Update server name in summary when typing
         nameInput.addEventListener('input', () => {
           serverName.textContent = nameInput.value || '新服务器';
@@ -146,7 +176,7 @@
       }
 
       addVariableBtn.addEventListener('click', () => {
-        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [] });
+        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [], renewalDays: ['everyday'] });
         render();
       });
 
@@ -181,15 +211,32 @@
         } else if (target.classList.contains('btn-delete')) {
           servers.splice(index, 1);
           render();
+        } else if (target.classList.contains('day-btn')) {
+          const day = target.dataset.day;
+          const daySelector = target.parentElement;
+          
+          if (day === 'everyday') {
+            daySelector.querySelectorAll('.day-btn').forEach(btn => {
+              btn.classList.remove('active');
+            });
+            target.classList.add('active');
+          } else {
+            daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
+            target.classList.toggle('active');
+          }
         }
       });
 
       saveAllBtn.addEventListener('click', () => {
-        // Before saving, collect all time inputs for each server
+        // Before saving, collect all time inputs and day selections for each server
         document.querySelectorAll('.variable-item').forEach((item, index) => {
           const timeInputs = item.querySelectorAll('.time-input');
           const renewalTimes = Array.from(timeInputs).map(input => input.value).filter(Boolean);
           servers[index].renewalTimes = renewalTimes;
+
+          const dayButtons = item.querySelectorAll('.day-btn.active');
+          const renewalDays = Array.from(dayButtons).map(btn => btn.dataset.day);
+          servers[index].renewalDays = renewalDays.length > 0 ? renewalDays : ['everyday'];
         });
         
         fetch('/api/variables', {

@@ -14,5 +14,9 @@ compatibility_date = "2023-08-01" # 兼容性日期，确保 API 行为一致性
 # 然后将生成的 id 填充到下面的配置中。
 # =================================================================================
 kv_namespaces = [
-  { binding = "AUTO_RENEW_KV", id = "在此处填入您创建的KV命名空间的ID" } # 用于存储服务器配置
+  { binding = "AUTO_RENEW_KV", id = "在此处填入您创建的KV命名空间的ID" }
 ]
+
+[site]
+bucket = "./"
+entry-point = "workers-site"
