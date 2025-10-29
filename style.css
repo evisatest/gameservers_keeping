@@ -274,3 +274,22 @@ input:focus {
 .btn-toggle-details:hover {
   background-color: var(--light-gray-color);
 }
+
+.day-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.day-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.day-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}

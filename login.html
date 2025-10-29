@@ -13,7 +13,7 @@
       <h2>续期管理</h2>
       <p>请登录以继续</p>
     </div>
-    <form action="/login" method="post">
+    <form id="login-form" action="/api/login" method="post">
       <div class="form-group">
         <label for="username">用户名</label>
         <input type="text" id="username" name="username" placeholder="输入您的用户名" required>
@@ -24,6 +24,28 @@
       </div>
       <button type="submit" class="btn btn-primary btn-block">登 录</button>
     </form>
+    <p id="error-message" style="color: red; text-align: center; margin-top: 1rem;"></p>
   </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const errorMessage = document.getElementById('error-message');
+
+      const response = await fetch(form.action, {
+        method: form.method,
+        body: formData,
+      });
+
+      if (response.ok) {
+        window.location.href = '/';
+      } else {
+        const text = await response.text();
+        errorMessage.textContent = text || '登录失败，请重试。';
+      }
+    });
+  </script>
 </body>
 </html>
