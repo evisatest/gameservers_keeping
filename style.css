@@ -32,6 +32,11 @@ body {
   max-width: 960px; 
   margin: 2rem auto; 
   padding: 2rem; 
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 header { 
@@ -40,7 +45,7 @@ header {
   align-items: center; 
   margin-bottom: 2rem; 
   padding-bottom: 1.5rem; 
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 header h1 { 
   margin: 0; 
@@ -165,6 +170,13 @@ input:focus {
 }
 .btn-save:hover {
   background-color: var(--save-hover-color);
+}
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+.btn-danger:hover {
+  background-color: var(--danger-hover-color);
 }
 .btn-delete { 
   background-color: var(--danger-color); 

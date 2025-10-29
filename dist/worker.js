@@ -1,6 +1,3 @@
-var __defProp = Object.defineProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-
 // index.js
 var KV_CONFIG_KEY = "servers_config";
 var AUTH_COOKIE_NAME = "__auth_token";
@@ -132,7 +129,7 @@ function renderVariables() {
           <input type="text" data-key="renewUrl" value="\${server.renewUrl || ''}" placeholder="\u5B8C\u6574\u7684\u7EED\u671F\u8BF7\u6C42 URL">
         </div>
         <div class="renewal-times-container" style="grid-column: 1 / -1;">
-          <label>\u7EED\u671F\u65F6\u95F4 (UTC, 24\u5C0F\u65F6\u5236, HH:mm):</label>
+          <label>\u7EED\u671F\u65F6\u95F4 (\u4E0A\u6D77\u65F6\u95F4, 24\u5C0F\u65F6\u5236, HH:mm):</label>
           <div id="times-list-\${id}">
             \${(server.renewalTimes || []).map((time, timeIndex) => \`
               <div class="time-input-group" data-time-index="\${timeIndex}">
@@ -296,28 +293,16 @@ var loginHtml = `
 </body>
 </html>
 `;
-var index_default = {
-  /**
-   * 监听 HTTP 请求 (用于 UI 和 API)
-   * @param {Request} request
-   * @param {object} env
-   * @param {ExecutionContext} ctx
-   */
+var project_default = {
   async fetch(request, env, ctx) {
     return handleFetch(request, env, ctx);
   },
-  /**
-   * 监听计划任务 (用于定时续期)
-   * @param {ScheduledController} controller
-   * @param {object} env
-   * @param {ExecutionContext} ctx
-   */
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(handleScheduled(env));
   }
 };
 async function handleScheduled(env) {
-  const timestamp = /* @__PURE__ */ __name(() => "[" + (/* @__PURE__ */ new Date()).toISOString() + "]", "timestamp");
+  const timestamp = () => "[" + new Date().toISOString() + "]";
   console.log(timestamp() + " \u{1F680} \u5F00\u59CB\u6267\u884C\u81EA\u52A8\u7EED\u671F\u4EFB\u52A1...");
   let servers = await getServersConfig(env);
   if (!servers || servers.length === 0) {
@@ -326,11 +311,11 @@ async function handleScheduled(env) {
     await sendTelegramNotification(message, env);
     return;
   }
-  const now = /* @__PURE__ */ new Date();
-  const currentHour = now.getUTCHours().toString().padStart(2, "0");
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
+  const currentHour = now.getHours().toString().padStart(2, "0");
   const currentMinute = now.getMinutes().toString().padStart(2, "0");
   const currentTime = currentHour + ":" + currentMinute;
-  console.log(timestamp() + " \u2139\uFE0F \u5F53\u524D\u65F6\u95F4 (UTC): " + currentTime + "\u3002\u68C0\u6D4B\u5230 " + servers.length + " \u53F0\u670D\u52A1\u5668\u914D\u7F6E\u3002");
+  console.log(timestamp() + " \u2139\uFE0F \u5F53\u524D\u65F6\u95F4 (\u4E0A\u6D77): " + currentTime + "\u3002\u68C0\u6D4B\u5230 " + servers.length + " \u53F0\u670D\u52A1\u5668\u914D\u7F6E\u3002");
   const serversToRenew = servers.filter((server) => {
     if (!server.renewalTimes || server.renewalTimes.length === 0) {
       return true;
@@ -365,7 +350,6 @@ async function handleScheduled(env) {
   console.log(finalMessage);
   await sendTelegramNotification(finalMessage, env);
 }
-__name(handleScheduled, "handleScheduled");
 async function getServersConfig(env) {
   if (!env.AUTO_RENEW_KV) {
     console.error("\u274C KV \u547D\u540D\u7A7A\u95F4 'AUTO_RENEW_KV' \u672A\u7ED1\u5B9A\u3002\u8BF7\u68C0\u67E5 wrangler.toml \u914D\u7F6E\u3002");
@@ -403,7 +387,6 @@ async function getServersConfig(env) {
   }
   return servers;
 }
-__name(getServersConfig, "getServersConfig");
 async function renewServer(server, timestamp) {
   const serverName = server.name || "(\u672A\u547D\u540D: " + server.serverId + ")";
   if (!server.apiKey || !server.serverId || !server.renewUrl) {
@@ -439,7 +422,6 @@ async function renewServer(server, timestamp) {
     throw new Error("\u8BF7\u6C42\u5F02\u5E38: " + error.message);
   }
 }
-__name(renewServer, "renewServer");
 async function sendTelegramNotification(text, env) {
   const { TG_BOT_TOKEN, TG_CHAT_ID } = env;
   if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
@@ -467,7 +449,6 @@ async function sendTelegramNotification(text, env) {
     console.error("\u274C \u8C03\u7528 Telegram API \u65F6\u51FA\u9519:", error.message);
   }
 }
-__name(sendTelegramNotification, "sendTelegramNotification");
 async function handleFetch(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname === "/") {
@@ -487,7 +468,6 @@ async function handleFetch(request, env, ctx) {
   }
   return new Response("Not Found", { status: 404 });
 }
-__name(handleFetch, "handleFetch");
 async function isAuthenticated(request, env) {
   const cookie = request.headers.get("Cookie");
   if (!cookie || !cookie.includes(AUTH_COOKIE_NAME)) {
@@ -499,7 +479,6 @@ async function isAuthenticated(request, env) {
   const token = cookie.split(";").find((c) => c.trim().startsWith(AUTH_COOKIE_NAME + "=")).split("=")[1];
   return token === await getAuthToken(env);
 }
-__name(isAuthenticated, "isAuthenticated");
 async function getAuthToken(env) {
   const secret = env.AUTH_PASSWORD || "admin";
   const username = env.AUTH_USERNAME || "admin";
@@ -516,14 +495,12 @@ async function getAuthToken(env) {
   const signature = await crypto.subtle.sign("HMAC", key, messageData);
   return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-__name(getAuthToken, "getAuthToken");
 async function handleUIRoute(request, env) {
   if (await isAuthenticated(request, env)) {
     return new Response(indexHtml, { headers: { "Content-Type": "text/html;charset=UTF-8" } });
   }
   return new Response(loginHtml, { headers: { "Content-Type": "text/html;charset=UTF-8" } });
 }
-__name(handleUIRoute, "handleUIRoute");
 async function handleLogin(request, env) {
   try {
     const formData = await request.formData();
@@ -543,13 +520,11 @@ async function handleLogin(request, env) {
     return new Response("\u767B\u5F55\u8BF7\u6C42\u65E0\u6548\u3002", { status: 400 });
   }
 }
-__name(handleLogin, "handleLogin");
 function handleLogout() {
   const headers = new Headers({ "Location": "/" });
   headers.append("Set-Cookie", AUTH_COOKIE_NAME + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
   return new Response(null, { status: 302, headers });
 }
-__name(handleLogout, "handleLogout");
 async function handleApiVariables(request, env) {
   if (!await isAuthenticated(request, env)) {
     return new Response("Unauthorized", { status: 401 });
@@ -575,8 +550,6 @@ async function handleApiVariables(request, env) {
   }
   return new Response("Method Not Allowed", { status: 405 });
 }
-__name(handleApiVariables, "handleApiVariables");
 export {
-  index_default as default
+  project_default as default
 };
-//# sourceMappingURL=index.js.map
