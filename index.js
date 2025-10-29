@@ -11,8 +11,612 @@ const KV_CONFIG_KEY = "servers_config";
 const AUTH_COOKIE_NAME = "__auth_token";
 
 // --- 静态资源 ---
-// Note: The HTML and CSS are now served from separate files (index.html, login.html, style.css)
-// The inline variables (styleCss, clientScript, indexHtml, loginHtml) are removed.
+const styleCss = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary-color: #4a90e2;
+  --primary-hover-color: #357ABD;
+  --danger-color: #e94f4f;
+  --danger-hover-color: #D33636;
+  --save-color: #4CAF50;
+  --save-hover-color: #45a049;
+  --light-gray-color: #f0f2f5;
+  --border-color: #d9d9d9;
+  --text-color: #333;
+  --text-secondary-color: #666;
+  --background-color: #ffffff;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --border-radius: 8px;
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+body { 
+  font-family: var(--font-family); 
+  margin: 0; 
+  background-image: url('https://source.unsplash.com/featured/?beach');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--text-color); 
+}
+
+.container { 
+  max-width: 960px; 
+  margin: 2rem auto; 
+  padding: 2rem; 
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 2rem; 
+  padding-bottom: 1.5rem; 
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+header h1 { 
+  margin: 0; 
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+#logout-btn { 
+  background: var(--danger-color); 
+  color: white; 
+  border: none; 
+  padding: 0.6rem 1.2rem; 
+  border-radius: var(--border-radius); 
+  cursor: pointer; 
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+#logout-btn:hover { 
+  background: var(--danger-hover-color); 
+}
+
+.variable-item {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s;
+}
+.variable-item:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.variable-summary {
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+}
+.server-name {
+  color: var(--primary-color);
+}
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.variable-details {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background-color: #fafafa;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+.form-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-secondary-color);
+}
+
+input[type="text"], input[type="time"] { 
+  width: 100%; 
+  box-sizing: border-box; 
+  padding: 0.8rem; 
+  border: 1px solid var(--border-color); 
+  border-radius: var(--border-radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.actions { 
+  grid-column: 1 / -1; 
+  display: flex; 
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn { 
+  padding: 0.7rem 1.4rem; 
+  border: none; 
+  border-radius: var(--border-radius); 
+  cursor: pointer; 
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.1s;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary { 
+  background-color: var(--primary-color); 
+  color: white; 
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover-color);
+}
+.btn-save { 
+  background-color: var(--save-color); 
+  color: white; 
+}
+.btn-save:hover {
+  background-color: var(--save-hover-color);
+}
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+.btn-danger:hover {
+  background-color: var(--danger-hover-color);
+}
+.btn-delete { 
+  background-color: var(--danger-color); 
+  color: white;
+}
+.btn-delete:hover {
+  background-color: var(--danger-hover-color);
+}
+.btn-add-time {
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.time-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.time-input-group { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+}
+.time-input-group input { 
+  flex-grow: 1; 
+}
+.btn-delete-time { 
+  background: none; 
+  border: 1px solid var(--border-color);
+  color: var(--danger-color); 
+  cursor: pointer; 
+  font-size: 1.2rem; 
+  padding: 0.2rem 0.5rem;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-delete-time:hover {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.footer-actions { 
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem; 
+}
+
+/* Login Page Styles */
+.login-container { 
+  max-width: 400px;
+  margin: 5rem auto;
+  background: var(--background-color); 
+  padding: 2.5rem; 
+  border-radius: var(--border-radius); 
+  box-shadow: var(--shadow);
+}
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.login-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+.login-header p {
+  margin: 0;
+  color: var(--text-secondary-color);
+}
+
+.login-container form .form-group {
+  margin-bottom: 1.5rem;
+}
+.login-container form input {
+  padding: 1rem;
+  font-size: 1rem;
+}
+.btn-block {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.btn-toggle-details {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+.btn-toggle-details:hover {
+  background-color: var(--light-gray-color);
+}
+
+.day-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.day-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.day-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+`;
+
+const loginHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 续期管理</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h2>续期管理</h2>
+      <p>请登录以继续</p>
+    </div>
+    <form id="login-form" action="/api/login" method="post">
+      <div class="form-group">
+        <label for="username">用户名</label>
+        <input type="text" id="username" name="username" placeholder="输入您的用户名" required>
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" placeholder="输入您的密码" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">登 录</button>
+    </form>
+    <p id="error-message" style="color: red; text-align: center; margin-top: 1rem;"></p>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const errorMessage = document.getElementById('error-message');
+
+      const response = await fetch(form.action, {
+        method: form.method,
+        body: formData,
+      });
+
+      if (response.ok) {
+        window.location.href = '/';
+      } else {
+        const text = await response.text();
+        errorMessage.textContent = text || '登录失败，请重试。';
+      }
+    });
+  </script>
+</body>
+</html>
+`;
+
+const indexHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>续期管理面板</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>续期管理面板</h1>
+      <button id="logout-btn" onclick="location.href='/api/logout'">登出</button>
+    </header>
+    
+    <div id="variables-list">
+      <!-- Server items will be dynamically inserted here -->
+    </div>
+
+    <div class="footer-actions">
+      <button id="add-variable" class="btn btn-primary">添加服务器</button>
+      <button id="save-all" class="btn btn-save">保存所有更改</button>
+      <button id="refresh-status" class="btn">刷新状态</button>
+      <button id="trigger-all" class="btn btn-danger">立即触发所有续期</button>
+    </div>
+  </div>
+
+  <template id="server-template">
+    <div class="variable-item">
+      <div class="variable-summary">
+        <span class="server-name">新服务器</span>
+        <div class="summary-actions">
+          <span class="status-indicator"></span>
+          <button class="btn-toggle-details">详情</button>
+        </div>
+      </div>
+      <div class="variable-details" style="display: none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>服务器名称</label>
+            <input type="text" data-key="name" placeholder="例如：我的主服务器 (可选)">
+          </div>
+          <div class="form-group">
+            <label>服务器ID</label>
+            <input type="text" data-key="serverId" placeholder="服务器的唯一标识">
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="text" data-key="apiKey" placeholder="用于API认证的密钥">
+          </div>
+          <div class="form-group">
+            <label>续期URL</label>
+            <input type="text" data-key="renewUrl" placeholder="完整的续期请求地址">
+          </div>
+          <div class="form-group full-width">
+            <label>续期时间 (HH:mm)</label>
+            <div class="time-inputs">
+              <!-- Time inputs will be added here -->
+            </div>
+            <button class="btn btn-add-time">添加时间</button>
+          </div>
+          <div class="form-group full-width">
+            <label>续期日期</label>
+            <div class="day-selector">
+              <button class="day-btn" data-day="everyday">每天</button>
+              <button class="day-btn" data-day="1">一</button>
+              <button class="day-btn" data-day="2">二</button>
+              <button class="day-btn" data-day="3">三</button>
+              <button class="day-btn" data-day="4">四</button>
+              <button class="day-btn" data-day="5">五</button>
+              <button class="day-btn" data-day="6">六</button>
+              <button class="day-btn" data-day="0">日</button>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-delete">删除服务器</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const variablesList = document.getElementById('variables-list');
+      const addVariableBtn = document.getElementById('add-variable');
+      const saveAllBtn = document.getElementById('save-all');
+      const serverTemplate = document.getElementById('server-template');
+      let servers = [];
+
+      // Fetch initial data
+      fetch('/api/variables')
+        .then(response => response.json())
+        .then(data => {
+          servers = data;
+          render();
+        });
+
+      function createServerElement(server, index) {
+        const templateClone = serverTemplate.content.cloneNode(true);
+        const serverElement = templateClone.querySelector('.variable-item');
+        serverElement.dataset.index = index;
+
+        const nameInput = serverElement.querySelector('[data-key="name"]');
+        const serverIdInput = serverElement.querySelector('[data-key="serverId"]');
+        const apiKeyInput = serverElement.querySelector('[data-key="apiKey"]');
+        const renewUrlInput = serverElement.querySelector('[data-key="renewUrl"]');
+        const serverName = serverElement.querySelector('.server-name');
+        
+        nameInput.value = server.name || '';
+        serverIdInput.value = server.serverId || '';
+        apiKeyInput.value = server.apiKey || '';
+        renewUrlInput.value = server.renewUrl || '';
+        serverName.textContent = server.name || '新服务器';
+
+        const timeInputsContainer = serverElement.querySelector('.time-inputs');
+        timeInputsContainer.innerHTML = '';
+        (server.renewalTimes || []).forEach(time => {
+          const timeGroup = createTimeInput(time);
+          timeInputsContainer.appendChild(timeGroup);
+        });
+
+        const daySelector = serverElement.querySelector('.day-selector');
+        const renewalDays = server.renewalDays || ['everyday'];
+        
+        daySelector.querySelectorAll('.day-btn').forEach(btn => {
+          const day = btn.dataset.day;
+          if (renewalDays.includes(day)) {
+            btn.classList.add('active');
+          }
+
+          if (renewalDays.includes('everyday') && day !== 'everyday') {
+            btn.classList.remove('active');
+            daySelector.querySelector('[data-day="everyday"]').classList.add('active');
+          } else if (!renewalDays.includes('everyday') && day === 'everyday') {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Update server name in summary when typing
+        nameInput.addEventListener('input', () => {
+          serverName.textContent = nameInput.value || '新服务器';
+        });
+
+        return serverElement;
+      }
+
+      function createTimeInput(time) {
+        const div = document.createElement('div');
+        div.className = 'time-input-group';
+        div.innerHTML = \`
+          <input type="time" class="time-input" value="\${time}">
+          <button type="button" class="btn-delete-time">&times;</button>
+        \`;
+        return div;
+      }
+
+      function render() {
+        variablesList.innerHTML = '';
+        servers.sort((a, b) => {
+          const numA = parseInt(a.serverId, 10);
+          const numB = parseInt(b.serverId, 10);
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          if (!isNaN(numA)) return -1;
+          if (!isNaN(numB)) return 1;
+          return 0;
+        });
+        servers.forEach((server, index) => {
+          const serverElement = createServerElement(server, index);
+          variablesList.appendChild(serverElement);
+        });
+      }
+
+      addVariableBtn.addEventListener('click', () => {
+        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [], renewalDays: ['everyday'] });
+        render();
+      });
+
+      variablesList.addEventListener('input', (e) => {
+        const target = e.target;
+        const variableItem = target.closest('.variable-item');
+        if (!variableItem) return;
+
+        const index = variableItem.dataset.index;
+        
+        if (target.matches('[data-key]')) {
+          servers[index][target.dataset.key] = target.value;
+        }
+      });
+
+      variablesList.addEventListener('click', (e) => {
+        const target = e.target;
+        const variableItem = target.closest('.variable-item');
+        if (!variableItem) return;
+
+        const index = variableItem.dataset.index;
+
+        if (target.classList.contains('btn-toggle-details')) {
+          const details = variableItem.querySelector('.variable-details');
+          details.style.display = details.style.display === 'none' ? 'block' : 'none';
+          target.textContent = details.style.display === 'none' ? '详情' : '收起';
+        } else if (target.classList.contains('btn-add-time')) {
+          const timeInputsContainer = variableItem.querySelector('.time-inputs');
+          timeInputsContainer.appendChild(createTimeInput(''));
+        } else if (target.classList.contains('btn-delete-time')) {
+          target.closest('.time-input-group').remove();
+        } else if (target.classList.contains('btn-delete')) {
+          servers.splice(index, 1);
+          render();
+        } else if (target.classList.contains('day-btn')) {
+          const day = target.dataset.day;
+          const daySelector = target.parentElement;
+          
+          if (day === 'everyday') {
+            daySelector.querySelectorAll('.day-btn').forEach(btn => {
+              btn.classList.remove('active');
+            });
+            target.classList.add('active');
+          } else {
+            daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
+            target.classList.toggle('active');
+          }
+        }
+      });
+
+      saveAllBtn.addEventListener('click', () => {
+        // Before saving, collect all time inputs and day selections for each server
+        document.querySelectorAll('.variable-item').forEach((item, index) => {
+          const timeInputs = item.querySelectorAll('.time-input');
+          const renewalTimes = Array.from(timeInputs).map(input => input.value).filter(Boolean);
+          servers[index].renewalTimes = renewalTimes;
+
+          const dayButtons = item.querySelectorAll('.day-btn.active');
+          const renewalDays = Array.from(dayButtons).map(btn => btn.dataset.day);
+          servers[index].renewalDays = renewalDays.length > 0 ? renewalDays : ['everyday'];
+        });
+        
+        fetch('/api/variables', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(servers)
+        }).then(response => {
+          if (response.ok) {
+            alert('保存成功!');
+          } else {
+            alert('保存失败!');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+`;
 
 // =================================================================================
 // 主入口点: 监听 fetch 和 scheduled 事件
@@ -239,35 +843,32 @@ async function handleFetch(request, env, ctx) {
     return handleApiRequest(request, env, ctx);
   }
 
-  // For all other requests, treat them as static asset requests
-  try {
-    const isAuthenticated = await checkAuth(request, env);
-
-    // If not authenticated, only allow access to login page and style.css
-    if (!isAuthenticated) {
-      if (url.pathname === '/login.html' || url.pathname === '/style.css') {
-        return env.ASSETS.fetch(request);
-      } else {
-        return Response.redirect(url.origin + '/login.html', 302);
-      }
-    }
-
-    // If authenticated, but trying to access login, redirect to main page
-    if (url.pathname === '/login.html') {
-      return Response.redirect(url.origin + '/', 302);
-    }
-    
-    // Serve the requested asset (e.g., /, /index.html, /style.css)
-    return env.ASSETS.fetch(request);
-
-  } catch (e) {
-    // If asset not found, return a 404
-    let pathname = url.pathname;
-    return new Response(`Asset "${pathname}" not found`, {
-      status: 404,
-      statusText: "Not Found",
-    });
+  // Serve static assets
+  if (url.pathname === '/style.css') {
+    return new Response(styleCss, { headers: { 'Content-Type': 'text/css' } });
   }
+
+  const isAuthenticated = await checkAuth(request, env);
+
+  if (!isAuthenticated) {
+    if (url.pathname === '/login.html' || url.pathname === '/login') {
+      return new Response(loginHtml, { headers: { 'Content-Type': 'text/html' } });
+    }
+    return Response.redirect(url.origin + '/login.html', 302);
+  }
+
+  // If authenticated, serve the main page
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    return new Response(indexHtml, { headers: { 'Content-Type': 'text/html' } });
+  }
+  
+  // If authenticated and trying to access login, redirect to main page
+  if (url.pathname === '/login.html' || url.pathname === '/login') {
+    return Response.redirect(url.origin + '/', 302);
+  }
+
+  // Fallback for any other path
+  return new Response('Not Found', { status: 404 });
 }
 
 /**
