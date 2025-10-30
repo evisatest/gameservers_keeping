@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "esbuild index.js --bundle --outfile=dist/worker.js --format=esm --loader:.js=js"
+    "build": "esbuild index.js --bundle --outfile=dist/worker.js --format=esm --target=es2020 --loader:.js=js"
   },
   "author": "Pungwing",
   "license": "MIT",
