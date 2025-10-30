@@ -24,6 +24,20 @@
       <button id="refresh-status" class="btn">刷新状态</button>
       <button id="trigger-all" class="btn btn-danger">立即触发所有续期</button>
     </div>
+
+    <div id="global-schedule-actions" class="schedule-actions">
+      <p><strong>批量设置所有服务器续期日期:</strong></p>
+      <div class="day-selector">
+        <button class="day-btn active" data-day="everyday">每天</button>
+        <button class="day-btn" data-day="0">周日</button>
+        <button class="day-btn" data-day="1">周一</button>
+        <button class="day-btn" data-day="2">周二</button>
+        <button class="day-btn" data-day="3">周三</button>
+        <button class="day-btn" data-day="4">周四</button>
+        <button class="day-btn" data-day="5">周五</button>
+        <button class="day-btn" data-day="6">周六</button>
+      </div>
+    </div>
   </div>
 
   <template id="server-template">
@@ -250,6 +264,41 @@
             alert('保存失败!');
           }
         });
+      });
+
+      const globalScheduleActions = document.getElementById('global-schedule-actions');
+      globalScheduleActions.addEventListener('click', e => {
+        if (e.target.classList.contains('day-btn')) {
+          const day = e.target.dataset.day;
+          const btn = e.target;
+          
+          let newDays;
+
+          // Manage active state of global buttons
+          if (day === 'everyday') {
+            globalScheduleActions.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            newDays = ['everyday'];
+          } else {
+            globalScheduleActions.querySelector('[data-day="everyday"]').classList.remove('active');
+            btn.classList.toggle('active');
+            
+            const activeBtns = globalScheduleActions.querySelectorAll('.day-btn.active');
+            newDays = Array.from(activeBtns).map(b => b.dataset.day);
+            if (newDays.length === 0) {
+              // If no days are selected, default to everyday
+              globalScheduleActions.querySelector('[data-day="everyday"]').classList.add('active');
+              newDays = ['everyday'];
+            }
+          }
+
+          // Apply to all servers
+          servers.forEach(server => {
+            server.renewalDays = [...newDays];
+          });
+          
+          render();
+        }
       });
     });
   </script>
