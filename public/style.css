@@ -293,3 +293,18 @@ input:focus {
   color: white;
   border-color: var(--primary-color);
 }
+
+.schedule-actions {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.schedule-actions p {
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
