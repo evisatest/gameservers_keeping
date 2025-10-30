@@ -2,6 +2,7 @@
 # 参考文档: https://developers.cloudflare.com/workers/wrangler/configuration/
 
 name = "gamechi-auto-renew" # Worker 的名称
+main = "dist/worker.js"
 compatibility_date = "2023-08-01" # 兼容性日期，确保 API 行为一致性
 
 [build]
@@ -9,7 +10,6 @@ command = "npm run build"
 [build.upload]
 format = "modules"
 dir = "public"
-main = "dist/worker.js"
 
 
 # =================================================================================
