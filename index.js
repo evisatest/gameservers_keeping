@@ -1,8 +1,10 @@
+// --- 依赖 ---
+import { Buffer } from 'node:buffer';
 
 // =================================================================================
 // 游戏鸡 自动续期
 // 原作者: Pungwing 单机版
-// 二次创作：Evisa  轻量容器兼容版本 
+// 二次创作：Evisa 轻量容器兼容版本 
 // 功能增强版: 添加了 Web UI 管理和 Telegram 通知
 // =================================================================================
 
@@ -12,7 +14,6 @@ const AUTH_COOKIE_NAME = "__auth_token";
 
 // --- 静态资源 ---
 const styleCss = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
   --primary-color: #4a90e2;
   --primary-hover-color: #357ABD;
@@ -29,7 +30,6 @@ const styleCss = `@import url('https://fonts.googleapis.com/css2?family=Inter:wg
   --border-radius: 8px;
   --shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
-
 body { 
   font-family: var(--font-family); 
   margin: 0; 
@@ -40,7 +40,6 @@ body {
   background-attachment: fixed;
   color: var(--text-color); 
 }
-
 .container { 
   max-width: 960px; 
   margin: 2rem auto; 
@@ -51,7 +50,6 @@ body {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
-
 header { 
   display: flex; 
   justify-content: space-between; 
@@ -65,7 +63,6 @@ header h1 {
   font-size: 1.8rem;
   font-weight: 600;
 }
-
 #logout-btn { 
   background: var(--danger-color); 
   color: white; 
@@ -79,7 +76,6 @@ header h1 {
 #logout-btn:hover { 
   background: var(--danger-hover-color); 
 }
-
 .variable-item {
   background: var(--background-color);
   border: 1px solid var(--border-color);
@@ -91,7 +87,6 @@ header h1 {
 .variable-item:hover {
   box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
-
 .variable-summary {
   padding: 1rem 1.5rem;
   font-weight: 600;
@@ -109,19 +104,16 @@ header h1 {
   align-items: center;
   gap: 1rem;
 }
-
 .variable-details {
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);
   background-color: #fafafa;
 }
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
 }
-
 .form-group {
   display: flex;
   flex-direction: column;
@@ -134,7 +126,6 @@ header h1 {
   font-weight: 500;
   color: var(--text-secondary-color);
 }
-
 input[type="text"], input[type="time"] { 
   width: 100%; 
   box-sizing: border-box; 
@@ -148,7 +139,6 @@ input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
-
 .actions { 
   grid-column: 1 / -1; 
   display: flex; 
@@ -157,7 +147,6 @@ input:focus {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
 }
-
 .btn { 
   padding: 0.7rem 1.4rem; 
   border: none; 
@@ -204,7 +193,6 @@ input:focus {
   padding: 0.5rem 1rem;
   margin-top: 0.5rem;
 }
-
 .time-inputs {
   display: flex;
   flex-direction: column;
@@ -235,14 +223,12 @@ input:focus {
   background-color: var(--danger-color);
   color: white;
 }
-
 .footer-actions { 
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 2rem; 
 }
-
 /* Login Page Styles */
 .login-container { 
   max-width: 400px;
@@ -265,7 +251,6 @@ input:focus {
   margin: 0;
   color: var(--text-secondary-color);
 }
-
 .login-container form .form-group {
   margin-bottom: 1.5rem;
 }
@@ -287,7 +272,6 @@ input:focus {
 .btn-toggle-details:hover {
   background-color: var(--light-gray-color);
 }
-
 .day-selector {
   display: flex;
   gap: 0.5rem;
@@ -307,7 +291,6 @@ input:focus {
   border-color: var(--primary-color);
 }
 `;
-
 const loginHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -335,19 +318,16 @@ const loginHtml = `<!DOCTYPE html>
     </form>
     <p id="error-message" style="color: red; text-align: center; margin-top: 1rem;"></p>
   </div>
-
   <script>
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
       const errorMessage = document.getElementById('error-message');
-
       const response = await fetch(form.action, {
         method: form.method,
         body: formData,
       });
-
       if (response.ok) {
         window.location.href = '/';
       } else {
@@ -359,7 +339,6 @@ const loginHtml = `<!DOCTYPE html>
 </body>
 </html>
 `;
-
 const indexHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -378,7 +357,6 @@ const indexHtml = `<!DOCTYPE html>
     <div id="variables-list">
       <!-- Server items will be dynamically inserted here -->
     </div>
-
     <div class="footer-actions">
       <button id="add-variable" class="btn btn-primary">添加服务器</button>
       <button id="save-all" class="btn btn-save">保存所有更改</button>
@@ -386,7 +364,6 @@ const indexHtml = `<!DOCTYPE html>
       <button id="trigger-all" class="btn btn-danger">立即触发所有续期</button>
     </div>
   </div>
-
   <template id="server-template">
     <div class="variable-item">
       <div class="variable-summary">
@@ -441,7 +418,6 @@ const indexHtml = `<!DOCTYPE html>
       </div>
     </div>
   </template>
-
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const variablesList = document.getElementById('variables-list');
@@ -449,7 +425,6 @@ const indexHtml = `<!DOCTYPE html>
       const saveAllBtn = document.getElementById('save-all');
       const serverTemplate = document.getElementById('server-template');
       let servers = [];
-
       // Fetch initial data
       fetch('/api/variables')
         .then(response => {
@@ -465,12 +440,10 @@ const indexHtml = `<!DOCTYPE html>
             render();
           }
         });
-
       function createServerElement(server, index) {
         const templateClone = serverTemplate.content.cloneNode(true);
         const serverElement = templateClone.querySelector('.variable-item');
         serverElement.dataset.index = index;
-
         const nameInput = serverElement.querySelector('[data-key="name"]');
         const serverIdInput = serverElement.querySelector('[data-key="serverId"]');
         const apiKeyInput = serverElement.querySelector('[data-key="apiKey"]');
@@ -482,14 +455,12 @@ const indexHtml = `<!DOCTYPE html>
         apiKeyInput.value = server.apiKey || '';
         renewUrlInput.value = server.renewUrl || '';
         serverName.textContent = server.name || '新服务器';
-
         const timeInputsContainer = serverElement.querySelector('.time-inputs');
         timeInputsContainer.innerHTML = '';
         (server.renewalTimes || []).forEach(time => {
           const timeGroup = createTimeInput(time);
           timeInputsContainer.appendChild(timeGroup);
         });
-
         const daySelector = serverElement.querySelector('.day-selector');
         const renewalDays = server.renewalDays || ['everyday'];
         
@@ -498,460 +469,459 @@ const indexHtml = `<!DOCTYPE html>
           if (renewalDays.includes(day)) {
             btn.classList.add('active');
           }
-
-          if (renewalDays.includes('everyday') && day !== 'everyday') {
-            btn.classList.remove('active');
-            daySelector.querySelector('[data-day="everyday"]').classList.add('active');
-          } else if (!renewalDays.includes('everyday') && day === 'everyday') {
-            btn.classList.remove('active');
-          }
+          btn.addEventListener('click', () => {
+            if (day === 'everyday') {
+              btn.classList.toggle('active');
+              const isActive = btn.classList.contains('active');
+              daySelector.querySelectorAll('.day-btn').forEach(otherBtn => {
+                if (otherBtn !== btn) otherBtn.classList.remove('active');
+              });
+              if (isActive) {
+                servers[index].renewalDays = ['everyday'];
+              } else {
+                servers[index].renewalDays = [];
+              }
+            } else {
+              daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
+              btn.classList.toggle('active');
+              const activeDays = Array.from(daySelector.querySelectorAll('.day-btn.active'))
+                                      .map(b => b.dataset.day)
+                                      .filter(d => d !== 'everyday');
+              servers[index].renewalDays = activeDays.length > 0 ? activeDays : ['everyday'];
+               if (activeDays.length === 0) {
+                 daySelector.querySelector('[data-day="everyday"]').classList.add('active');
+               }
+            }
+          });
         });
-
-        return serverElement;
-      }
-      
-      function createTimeInput(time) {
-        const div = document.createElement('div');
-        div.className = 'time-input-group';
-        div.innerHTML = `
-          <input type="time" value="${time || ''}">
-          <button class="btn-delete-time">&times;</button>
-        `;
-        div.querySelector('.btn-delete-time').addEventListener('click', () => {
-          div.remove();
+        nameInput.addEventListener('input', () => {
+          serverName.textContent = nameInput.value || '新服务器';
         });
-        return div;
-      }
-
-      function render() {
-        variablesList.innerHTML = '';
-        servers.forEach((server, index) => {
-          const el = createServerElement(server, index);
-          variablesList.appendChild(el);
-        });
-      }
-
-      addVariableBtn.addEventListener('click', () => {
-        servers.push({ renewalTimes: [], renewalDays: ['everyday'] });
-        render();
-      });
-
-      variablesList.addEventListener('click', e => {
-        const target = e.target;
-        const serverItem = target.closest('.variable-item');
-        if (!serverItem) return;
-
-        const index = parseInt(serverItem.dataset.index, 10);
-        
-        if (target.classList.contains('btn-toggle-details')) {
-          const details = serverItem.querySelector('.variable-details');
+        serverElement.querySelector('.btn-toggle-details').addEventListener('click', () => {
+          const details = serverElement.querySelector('.variable-details');
           details.style.display = details.style.display === 'none' ? 'block' : 'none';
-        }
-
-        if (target.classList.contains('btn-add-time')) {
-          const timeInputsContainer = serverItem.querySelector('.time-inputs');
-          timeInputsContainer.appendChild(createTimeInput(''));
-        }
-        
-        if (target.classList.contains('btn-delete')) {
-          if (confirm('确定要删除这个服务器配置吗？')) {
+        });
+        serverElement.querySelector('.btn-delete').addEventListener('click', () => {
+          if (confirm(`确定要删除服务器 "${server.name || server.serverId}" 吗?`)) {
             servers.splice(index, 1);
             render();
           }
-        }
-        
-        if (target.classList.contains('day-btn')) {
-          const day = target.dataset.day;
-          const server = servers[index];
-          server.renewalDays = server.renewalDays || [];
-          
-          const daySelector = target.parentElement;
-
-          if (day === 'everyday') {
-             server.renewalDays = ['everyday'];
-             daySelector.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-             target.classList.add('active');
-          } else {
-             const everydayBtn = daySelector.querySelector('[data-day="everyday"]');
-             if (server.renewalDays.includes('everyday')) {
-                server.renewalDays = [];
-                everydayBtn.classList.remove('active');
-             }
-
-             const dayIndex = server.renewalDays.indexOf(day);
-             if (dayIndex > -1) {
-                server.renewalDays.splice(dayIndex, 1);
-                target.classList.remove('active');
-             } else {
-                server.renewalDays.push(day);
-                target.classList.add('active');
-             }
+        });
+        serverElement.querySelector('.btn-add-time').addEventListener('click', () => {
+          if (!servers[index].renewalTimes) {
+            servers[index].renewalTimes = [];
           }
+          servers[index].renewalTimes.push('01:00');
+          renderServer(server, index);
+        });
+        return serverElement;
+      }
+      function createTimeInput(time) {
+        const container = document.createElement('div');
+        container.className = 'time-input-group';
+        
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.value = time;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-delete-time';
+        deleteBtn.innerHTML = '&times;';
+        
+        container.appendChild(input);
+        container.appendChild(deleteBtn);
+        return container;
+      }
+      function renderServer(server, index) {
+        const oldElement = variablesList.querySelector(`[data-index="${index}"]`);
+        const newElement = createServerElement(server, index);
+        if (oldElement) {
+          variablesList.replaceChild(newElement, oldElement);
+        } else {
+          variablesList.appendChild(newElement);
         }
+      }
+      function render() {
+        variablesList.innerHTML = '';
+        servers.forEach((server, index) => {
+          const serverElement = createServerElement(server, index);
+          variablesList.appendChild(serverElement);
+        });
+      }
+      addVariableBtn.addEventListener('click', () => {
+        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: ['01:00'], renewalDays: ['everyday'] });
+        render();
       });
-      
       saveAllBtn.addEventListener('click', () => {
         const updatedServers = [];
-        document.querySelectorAll('.variable-item').forEach(item => {
-          const server = {
-            name: item.querySelector('[data-key="name"]').value,
-            serverId: item.querySelector('[data-key="serverId"]').value,
-            apiKey: item.querySelector('[data-key="apiKey"]').value,
-            renewUrl: item.querySelector('[data-key="renewUrl"]').value,
-            renewalTimes: Array.from(item.querySelectorAll('.time-inputs input[type="time"]'))
-                                .map(input => input.value)
-                                .filter(Boolean),
-            renewalDays: Array.from(item.querySelectorAll('.day-selector .day-btn.active'))
-                               .map(btn => btn.dataset.day)
-          };
-          updatedServers.push(server);
+        variablesList.querySelectorAll('.variable-item').forEach((item, index) => {
+          const serverData = { ...servers[index] };
+          item.querySelectorAll('input[data-key]').forEach(input => {
+            serverData[input.dataset.key] = input.value;
+          });
+          const timeInputs = item.querySelectorAll('.time-inputs input[type="time"]');
+          serverData.renewalTimes = Array.from(timeInputs).map(input => input.value);
+          const activeDayButtons = item.querySelectorAll('.day-selector .day-btn.active');
+          serverData.renewalDays = Array.from(activeDayButtons).map(btn => btn.dataset.day);
+          updatedServers.push(serverData);
         });
-
+        servers = updatedServers;
         fetch('/api/variables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedServers),
+          body: JSON.stringify(servers),
         })
         .then(response => {
           if (response.ok) {
-            alert('所有配置已保存！');
-            servers = updatedServers;
-            render();
+            alert('保存成功!');
+            render(); 
           } else {
-            alert('保存失败，请检查网络或刷新页面重试。');
+            alert('保存失败。');
           }
         });
       });
-      
-      document.getElementById('refresh-status').addEventListener('click', () => {
-         // Placeholder for status refresh logic
-         alert('状态刷新功能待实现。');
-      });
-
-      document.getElementById('trigger-all').addEventListener('click', () => {
-        if (confirm('确定要立即触发所有服务器的续期吗？这可能会消耗大量资源。')) {
-          fetch('/api/trigger-all', { method: 'POST' })
-            .then(response => response.text())
-            .then(message => alert(message))
-            .catch(err => alert('触发失败: ' + err));
+    document.getElementById('refresh-status').addEventListener('click', async () => {
+        const response = await fetch('/api/get-status');
+        if (response.ok) {
+            const statuses = await response.json();
+            updateStatusIndicators(statuses);
+            alert('状态已刷新!');
+        } else {
+            alert('刷新状态失败。');
         }
-      });
+    });
+    document.getElementById('trigger-all').addEventListener('click', async () => {
+        if (confirm('确定要立即触发所有服务器的续期吗? 这将忽略计划时间。')) {
+            const response = await fetch('/api/trigger-all', { method: 'POST' });
+            const result = await response.text();
+            alert(result);
+        }
+    });
+    function updateStatusIndicators(statuses) {
+        variablesList.querySelectorAll('.variable-item').forEach((item) => {
+            const serverId = item.querySelector('[data-key="serverId"]').value;
+            const statusIndicator = item.querySelector('.status-indicator');
+            if (statuses[serverId]) {
+                const { success, timestamp } = statuses[serverId];
+                statusIndicator.textContent = `${success ? '✅' : '❌'} (${new Date(timestamp).toLocaleTimeString()})`;
+                statusIndicator.title = `最后续期于 ${new Date(timestamp).toLocaleString()}`;
+            } else {
+                statusIndicator.textContent = '...';
+                statusIndicator.title = '尚无状态信息';
+            }
+        });
+    }
     });
   </script>
 </body>
 </html>
 `;
-
-// --- 中间件和路由 ---
-
-/**
- * 验证请求是否已经过身份验证
- * @param {Request} request
- * @param {any} env
- * @returns {Promise<boolean>}
- */
-async function isAuthenticated(request, env) {
-  const cookie = request.headers.get('Cookie');
-  if (!cookie || !cookie.includes(AUTH_COOKIE_NAME)) {
-    return false;
+// --- 工具函数 ---
+const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), {
+  headers: {
+    'Content-Type': 'application/json;charset=UTF-8'
+  },
+  status
+});
+const textResponse = (text, status = 200, headers = {}) => new Response(text, {
+  status,
+  headers: {
+    'Content-Type': 'text/plain;charset=UTF-8',
+    ...headers
   }
-
-  const token = cookie.split(';').find(c => c.trim().startsWith(AUTH_COOKIE_NAME + '='));
-  if (!token) {
-    return false;
-  }
-
-  const authToken = token.split('=')[1];
-  const storedToken = await env.KV_NAMESPACE.get('auth_token');
-
-  return authToken === storedToken && storedToken !== null;
-}
-
-/**
- * 处理HTTP请求
- * @param {Request} request
- * @param {any} env
- * @param {any} ctx
- * @returns {Promise<Response>}
- */
-async function handleRequest(request, env, ctx) {
-  const url = new URL(request.url);
-
-  // 登录页面和API端点等公共资源不需要身份验证
-  if (url.pathname === '/login.html' || url.pathname === '/api/login' || url.pathname === '/style.css') {
-    return serveAsset(request, env, ctx);
-  }
-
-  // 检查身份验证
-  const authenticated = await isAuthenticated(request, env);
-  if (!authenticated) {
-    // 对于API请求，返回401 Unauthorized
-    if (url.pathname.startsWith('/api/')) {
-        return new Response('Unauthorized', { status: 401 });
-    }
-    // 对于页面请求，重定向到登录页面
-    return Response.redirect(url.origin + '/login.html', 302);
-  }
-
-  // 对于已认证的请求，提供资源
-  return serveAsset(request, env, ctx);
-}
-
-
-/**
- * 提供静态资源或API路由
- * @param {Request} request
- * @param {any} env
- * @param {any} ctx
- * @returns {Promise<Response>}
- */
-async function serveAsset(request, env, ctx) {
-  const url = new URL(request.url);
-  const path = url.pathname;
-  
-  // 静态资源
-  if (path === '/style.css') {
-    return new Response(styleCss, { headers: { 'Content-Type': 'text/css' } });
-  }
-  if (path === '/login.html') {
-    return new Response(loginHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-  }
-  if (path === '/') {
-    return new Response(indexHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-  }
-
-  // API 路由
-  if (path === '/api/login') {
-    return handleLogin(request, env);
-  }
-  if (path === '/api/logout') {
-    return handleLogout(request);
-  }
-  if (path === '/api/variables' && request.method === 'GET') {
-    return handleGetVariables(request, env);
-  }
-  if (path === '/api/variables' && request.method === 'POST') {
-    return handlePostVariables(request, env);
-  }
-   if (path === '/api/trigger-all' && request.method === 'POST') {
-    ctx.waitUntil(handleScheduled(env,null));
-    return new Response('所有续期任务已手动触发', { status: 200 });
-  }
-
-  return new Response('Not Found', { status: 404 });
-}
-
-// --- API 处理函数 ---
-
-/**
- * 处理登录请求
- * @param {Request} request
- * @param {any} env
- * @returns {Promise<Response>}
- */
-async function handleLogin(request, env) {
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
-  const formData = await request.formData();
-  const username = formData.get('username');
-  const password = formData.get('password');
-  
-  const { AUTH_USERNAME, AUTH_PASSWORD } = env;
-
-  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
-    const authToken = crypto.randomUUID();
-    await env.KV_NAMESPACE.put('auth_token', authToken, { expirationTtl: 86400 }); // 24小时过期
-
-    const headers = new Headers();
-    headers.append('Set-Cookie', `${AUTH_COOKIE_NAME}=${authToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
-    
-    return new Response('登录成功', { status: 200, headers });
-  } else {
-    return new Response('用户名或密码错误', { status: 401 });
-  }
-}
-
-/**
- * 处理登出请求
- * @param {Request} request
- * @returns {Promise<Response>}
- */
-function handleLogout(request) {
-  const headers = new Headers();
-  headers.append('Set-Cookie', `${AUTH_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
-  
-  const url = new URL(request.url);
-  return Response.redirect(url.origin + '/login.html', {
-    status: 302,
-    headers: headers
-  });
-}
-
-
+});
+const htmlResponse = (html, status = 200) => new Response(html, {
+  headers: {
+    'Content-Type': 'text/html;charset=UTF-8'
+  },
+  status
+});
+// --- 核心业务逻辑 ---
 /**
  * 获取服务器配置
- * @param {Request} request
  * @param {any} env
- * @returns {Promise<Response>}
  */
-async function handleGetVariables(request, env) {
-  const config = await env.KV_NAMESPACE.get(KV_CONFIG_KEY, 'json') || [];
-  return new Response(JSON.stringify(config), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+async function getServersConfig(env) {
+  const configStr = await env.KV.get(KV_CONFIG_KEY);
+  return configStr ? JSON.parse(configStr) : [];
 }
-
 /**
- * 更新服务器配置
- * @param {Request} request
+ * 保存服务器配置
  * @param {any} env
- * @returns {Promise<Response>}
+ * @param {any[]} config
  */
-async function handlePostVariables(request, env) {
-  try {
-    const config = await request.json();
-    await env.KV_NAMESPACE.put(KV_CONFIG_KEY, JSON.stringify(config));
-    return new Response('配置已保存', { status: 200 });
-  } catch (e) {
-    return new Response(`保存配置时出错: ${e.message}`, { status: 500 });
+async function saveServersConfig(env, config) {
+  await env.KV.put(KV_CONFIG_KEY, JSON.stringify(config, null, 2));
+}
+/**
+ * 发送续期请求
+ * @param {{ renewUrl: string; serverId: string; apiKey: string; name: any; }} server
+ */
+async function renewServer(server) {
+  const {
+    renewUrl,
+    serverId,
+    apiKey,
+    name
+  } = server;
+  if (!renewUrl || !serverId || !apiKey) {
+    return {
+      success: false,
+      message: `服务器 ${name || serverId} 的配置不完整，缺少 renewUrl, serverId, 或 apiKey。`
+    };
   }
-}
-
-// --- 定时任务处理 ---
-
-/**
- * 处理定时触发的续期任务
- * @param {any} env
- * @param {any} controller
- */
-async function handleScheduled(env,controller) {
-  try {
-    const config = await env.KV_NAMESPACE.get(KV_CONFIG_KEY, 'json');
-    if (!config || config.length === 0) {
-      console.log('没有配置，跳过续期。');
-      return;
-    }
-
-    const now = new Date();
-    const currentDay = now.getDay().toString(); // 0 for Sunday, 1 for Monday, etc.
-    const currentTime = now.toTimeString().slice(0, 5); // HH:mm
-    
-    console.log(`当前时间: ${currentTime}, 星期${currentDay}`);
-    
-    let renewalTasks = [];
-
-    for (const server of config) {
-      if (!server.renewalTimes || server.renewalTimes.length === 0) continue;
-
-      const renewalDays = server.renewalDays || ['everyday'];
-      const shouldRunToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
-      
-      if (shouldRunToday && server.renewalTimes.includes(currentTime)) {
-        renewalTasks.push(renewServer(server, env));
-      }
-    }
-
-    if (renewalTasks.length > 0) {
-      await Promise.all(renewalTasks);
-      const message = `成功为 ${renewalTasks.length} 个服务器续期。`;
-      console.log(message);
-      await sendTelegramNotification(env, message);
-    } else {
-      console.log('没有在当前时间需要续期的服务器。');
-    }
-  } catch (e) {
-    console.error(`执行定时任务时出错: ${e.message}`);
-    await sendTelegramNotification(env, `执行定时任务时出错: ${e.message}`);
-  }
-}
-
-// --- 核心业务逻辑 ---
-
-/**
- * 为单个服务器续期
- * @param {object} serverConfig
- * @param {any} env
- */
-async function renewServer(serverConfig, env) {
-  const { name, serverId, apiKey, renewUrl } = serverConfig;
-  const serverIdentifier = name || serverId;
-  
-  console.log(`正在为服务器 ${serverIdentifier} 续期...`);
-
   try {
     const response = await fetch(renewUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         server_id: serverId,
-        api_key: apiKey,
+        api_key: apiKey
       }),
     });
-
-    const result = await response.json();
-
-    if (response.ok && result.message === 'Renew request sent successfully.') {
-      const successMsg = `服务器 ${serverIdentifier} 续期成功。`;
-      console.log(successMsg);
-      await sendTelegramNotification(env, successMsg);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        return {
+          success: true,
+          message: `服务器 ${name || serverId} 续期成功。`
+        };
+      } else {
+        return {
+          success: false,
+          message: `服务器 ${name || serverId} 续期失败: ${result.message || '未知错误'}`
+        };
+      }
     } else {
-      const errorMsg = `服务器 ${serverIdentifier} 续期失败: ${result.message || response.statusText}`;
-      console.error(errorMsg);
-      await sendTelegramNotification(env, errorMsg);
+      const errorText = await response.text();
+      return {
+        success: false,
+        message: `服务器 ${name || serverId} 续期请求失败: ${response.status} ${response.statusText}. 响应: ${errorText}`
+      };
     }
   } catch (error) {
-    const errorMsg = `为服务器 ${serverIdentifier} 续期时发生网络错误: ${error.message}`;
-    console.error(errorMsg);
-    await sendTelegramNotification(env, errorMsg);
+    return {
+      success: false,
+      message: `服务器 ${name || serverId} 续期时发生网络错误: ${error.message}`
+    };
   }
 }
-
-// --- 辅助函数 ---
-
 /**
- * 发送Telegram通知
- * @param {any} env
+ * 发送 Telegram 通知
  * @param {string} message
+ * @param {any} env
  */
-async function sendTelegramNotification(env, message) {
-  const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = env;
+async function sendTelegramNotification(message, env) {
+  const {
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAT_ID
+  } = env;
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log('未配置Telegram通知，跳过发送。');
+    console.log("未配置 Telegram 通知所需的环境变量。");
     return;
   }
-
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         chat_id: TELEGRAM_CHAT_ID,
         text: message,
+        parse_mode: 'Markdown'
       }),
     });
     if (!response.ok) {
-      console.error(`发送Telegram通知失败: ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error(`发送 Telegram 通知失败: ${response.status} ${errorBody}`);
     }
-  } catch (e) {
-    console.error(`发送Telegram通知时出错: ${e.message}`);
+  } catch (error) {
+    console.error(`发送 Telegram 通知时发生网络错误: ${error}`);
   }
 }
-
-
-// --- Worker 入口 ---
-
+/**
+ * 检查并触发所有服务器的续期
+ * @param {any} env
+ * @param {boolean} force
+ */
+async function checkAndRenewAll(env, force = false) {
+  const servers = await getServersConfig(env);
+  const now = new Date(new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Shanghai'
+  }));
+  const currentDay = now.getDay().toString();
+  const currentTime = now.toTimeString().slice(0, 5);
+  let logs = [];
+  for (const server of servers) {
+    const renewalDays = server.renewalDays || ['everyday'];
+    const shouldRenewToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
+    const shouldRenewNow = server.renewalTimes && server.renewalTimes.includes(currentTime);
+    if (force || (shouldRenewToday && shouldRenewNow)) {
+      const result = await renewServer(server);
+      logs.push(result.message);
+      // 保存状态
+      const status = {
+        success: result.success,
+        timestamp: Date.now()
+      };
+      await env.KV.put(`status_${server.serverId}`, JSON.stringify(status));
+    }
+  }
+  if (logs.length > 0) {
+    const notificationMessage = `续期任务报告 (执行时间: ${now.toLocaleString('zh-CN')}):\n\n` + logs.join('\n');
+    console.log(notificationMessage);
+    await sendTelegramNotification(notificationMessage, env);
+  } else if (force) {
+    console.log("强制触发，但没有符合条件的服务器。");
+  }
+}
+// --- 认证 ---
+/**
+ * @param {string} password
+ * @param {string} storedHash
+ * @param {any} env
+ */
+async function verifyPassword(password, storedHash, env) {
+  if (!password || !storedHash) return false;
+  const [saltHex, hashHex] = storedHash.split(':');
+  if (!saltHex || !hashHex) return false;
+  const salt = Buffer.from(saltHex, 'hex');
+  const hash = Buffer.from(hashHex, 'hex');
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), {
+    name: 'PBKDF2'
+  }, false, ['deriveBits']);
+  const derivedBits = await crypto.subtle.deriveBits({
+    name: 'PBKDF2',
+    salt,
+    iterations: parseInt(env.ITERATIONS || '100000'),
+    hash: 'SHA-256',
+  }, key, 256);
+  return Buffer.from(derivedBits).equals(hash);
+}
+async function generateSecureToken() {
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+/**
+ * @param {Request} request
+ * @param {any} env
+ */
+async function isAuthenticated(request, env) {
+  const cookie = request.headers.get('Cookie');
+  if (!cookie) return false;
+  const tokenMatch = cookie.match(new RegExp(`${AUTH_COOKIE_NAME}=([^;]+)`));
+  if (!tokenMatch) return false;
+  const token = tokenMatch[1];
+  const storedToken = await env.KV.get(`auth_token_${token}`);
+  return !!storedToken;
+}
+// --- 路由和处理 ---
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request, env, ctx);
+    return await handleRequest(request, env).catch(
+      (err) => new Response(err.stack, {
+        status: 500
+      })
+    );
   },
-  async scheduled(controller, env, ctx) {
-    await handleScheduled(env, controller);
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(checkAndRenewAll(env));
   },
 };
+/**
+ * @param {Request} request
+ * @param {any} env
+ */
+async function handleRequest(request, env) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+  // 静态资源
+  if (path === '/style.css') {
+    return new Response(styleCss, {
+      headers: {
+        'Content-Type': 'text/css'
+      }
+    });
+  }
+  if (path === '/login.html') {
+    return htmlResponse(loginHtml);
+  }
+  // API 路由
+  if (path.startsWith('/api/')) {
+    // 登录接口不需要认证
+    if (path === '/api/login' && request.method === 'POST') {
+      const formData = await request.formData();
+      const username = formData.get('username');
+      const password = formData.get('password');
+      if (username === env.AUTH_USER) {
+        // 从环境变量中读取存储的哈希
+        const storedPasswordHash = env.AUTH_PASS_HASH;
+        if (await verifyPassword(password, storedPasswordHash, env)) {
+          const token = await generateSecureToken();
+          await env.KV.put(`auth_token_${token}`, 'valid', {
+            expirationTtl: 86400
+          }); // 24小时有效
+          return textResponse("登录成功", 200, {
+            'Set-Cookie': `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`
+          });
+        }
+      }
+      return textResponse("用户名或密码错误", 401);
+    }
+    // 登出接口
+    if (path === '/api/logout') {
+      return textResponse("已登出", 200, {
+        'Set-Cookie': `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`
+      });
+    }
+    // 后续所有 API 请求都需要认证
+    if (!await isAuthenticated(request, env)) {
+      return textResponse("未授权", 401);
+    }
+    if (path === '/api/variables') {
+      if (request.method === 'GET') {
+        const config = await getServersConfig(env);
+        return jsonResponse(config);
+      } else if (request.method === 'POST') {
+        try {
+          const newConfig = await request.json();
+          await saveServersConfig(env, newConfig);
+          return jsonResponse({
+            success: true,
+            message: "配置已保存"
+          });
+        } catch (e) {
+          return jsonResponse({
+            success: false,
+            message: "请求体无效"
+          }, 400);
+        }
+      }
+    }
+    if (path === '/api/get-status' && request.method === 'GET') {
+      const servers = await getServersConfig(env);
+      const statuses = {};
+      for (const server of servers) {
+        const statusStr = await env.KV.get(`status_${server.serverId}`);
+        if (statusStr) {
+          statuses[server.serverId] = JSON.parse(statusStr);
+        }
+      }
+      return jsonResponse(statuses);
+    }
+    if (path === '/api/trigger-all' && request.method === 'POST') {
+      await checkAndRenewAll(env, true);
+      return textResponse("已触发所有服务器续期任务。");
+    }
+    return textResponse("API 路由未找到", 404);
+  }
+  // UI 界面
+  if (!await isAuthenticated(request, env)) {
+    return Response.redirect(new URL('/login.html', request.url).toString(), 302);
+  }
+  return htmlResponse(indexHtml);
+}
