@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -17,29 +16,13 @@
     <div id="variables-list">
       <!-- Server items will be dynamically inserted here -->
     </div>
-
     <div class="footer-actions">
       <button id="add-variable" class="btn btn-primary">添加服务器</button>
       <button id="save-all" class="btn btn-save">保存所有更改</button>
       <button id="refresh-status" class="btn">刷新状态</button>
       <button id="trigger-all" class="btn btn-danger">立即触发所有续期</button>
     </div>
-
-    <div id="global-schedule-actions" class="schedule-actions">
-      <p><strong>批量设置所有服务器续期日期:</strong></p>
-      <div class="day-selector">
-        <button class="day-btn active" data-day="everyday">每天</button>
-        <button class="day-btn" data-day="0">周日</button>
-        <button class="day-btn" data-day="1">周一</button>
-        <button class="day-btn" data-day="2">周二</button>
-        <button class="day-btn" data-day="3">周三</button>
-        <button class="day-btn" data-day="4">周四</button>
-        <button class="day-btn" data-day="5">周五</button>
-        <button class="day-btn" data-day="6">周六</button>
-      </div>
-    </div>
   </div>
-
   <template id="server-template">
     <div class="variable-item">
       <div class="variable-summary">
@@ -94,7 +77,6 @@
       </div>
     </div>
   </template>
-
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const variablesList = document.getElementById('variables-list');
@@ -102,20 +84,25 @@
       const saveAllBtn = document.getElementById('save-all');
       const serverTemplate = document.getElementById('server-template');
       let servers = [];
-
       // Fetch initial data
       fetch('/api/variables')
-        .then(response => response.json())
+        .then(response => {
+          if (response.status === 401) {
+            window.location.href = '/login.html';
+            return;
+          }
+          return response.json();
+        })
         .then(data => {
-          servers = data;
-          render();
+          if (data) {
+            servers = data;
+            render();
+          }
         });
-
       function createServerElement(server, index) {
         const templateClone = serverTemplate.content.cloneNode(true);
         const serverElement = templateClone.querySelector('.variable-item');
         serverElement.dataset.index = index;
-
         const nameInput = serverElement.querySelector('[data-key="name"]');
         const serverIdInput = serverElement.querySelector('[data-key="serverId"]');
         const apiKeyInput = serverElement.querySelector('[data-key="apiKey"]');
@@ -126,15 +113,13 @@
         serverIdInput.value = server.serverId || '';
         apiKeyInput.value = server.apiKey || '';
         renewUrlInput.value = server.renewUrl || '';
-        serverName.textContent = server.name || '新服务器';
-
+        serverName.textContent = server..name || '新服务器';
         const timeInputsContainer = serverElement.querySelector('.time-inputs');
         timeInputsContainer.innerHTML = '';
         (server.renewalTimes || []).forEach(time => {
           const timeGroup = createTimeInput(time);
           timeInputsContainer.appendChild(timeGroup);
         });
-
         const daySelector = serverElement.querySelector('.day-selector');
         const renewalDays = server.renewalDays || ['everyday'];
         
@@ -143,163 +128,133 @@
           if (renewalDays.includes(day)) {
             btn.classList.add('active');
           }
-
-          if (renewalDays.includes('everyday') && day !== 'everyday') {
-            btn.classList.remove('active');
-            daySelector.querySelector('[data-day="everyday"]').classList.add('active');
-          } else if (!renewalDays.includes('everyday') && day === 'everyday') {
-            btn.classList.remove('active');
-          }
+          btn.addEventListener('click', () => {
+            if (day === 'everyday') {
+              btn.classList.toggle('active');
+              const isActive = btn.classList.contains('active');
+              daySelector.querySelectorAll('.day-btn').forEach(otherBtn => {
+                if (otherBtn !== btn) otherBtn.classList.remove('active');
+              });
+              if (isActive) {
+                servers[index].renewalDays = ['everyday'];
+              } else {
+                servers[index].renewalDays = [];
+              }
+            } else {
+              daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
+              btn.classList.toggle('active');
+              const activeDays = Array.from(daySelector.querySelectorAll('.day-btn.active'))
+                                      .map(b => b.dataset.day)
+                                      .filter(d => d !== 'everyday');
+              servers[index].renewalDays = activeDays.length > 0 ? activeDays : ['everyday'];
+               if (activeDays.length === 0) {
+                 daySelector.querySelector('[data-day="everyday"]').classList.add('active');
+               }
+            }
+          });
         });
-        
-        // Update server name in summary when typing
         nameInput.addEventListener('input', () => {
           serverName.textContent = nameInput.value || '新服务器';
         });
-
+        serverElement.querySelector('.btn-toggle-details').addEventListener('click', () => {
+          const details = serverElement.querySelector('.variable-details');
+          details.style.display = details.style.display === 'none' ? 'block' : 'none';
+        });
+        serverElement.querySelector('.btn-delete').addEventListener('click', () => {
+          if (confirm(`确定要删除服务器 "${server.name || '新服务器'}" 吗?`)) {
+            servers.splice(index, 1);
+            render();
+          }
+        });
+        serverElement.querySelector('.btn-add-time').addEventListener('click', (e) => {
+          const container = e.target.previousElementSibling;
+          container.appendChild(createTimeInput(''));
+        });
         return serverElement;
       }
-
       function createTimeInput(time) {
         const div = document.createElement('div');
         div.className = 'time-input-group';
-        div.innerHTML = `
-          <input type="time" class="time-input" value="${time}">
-          <button type="button" class="btn-delete-time">&times;</button>
-        `;
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.value = time;
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-delete-time';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.onclick = () => div.remove();
+        div.appendChild(input);
+        div.appendChild(deleteBtn);
         return div;
       }
-
       function render() {
         variablesList.innerHTML = '';
-        servers.sort((a, b) => {
-          const numA = parseInt(a.serverId, 10);
-          const numB = parseInt(b.serverId, 10);
-
-          if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB;
-          }
-          if (!isNaN(numA)) return -1;
-          if (!isNaN(numB)) return 1;
-          return 0;
-        });
         servers.forEach((server, index) => {
-          const serverElement = createServerElement(server, index);
-          variablesList.appendChild(serverElement);
+          variablesList.appendChild(createServerElement(server, index));
         });
       }
-
       addVariableBtn.addEventListener('click', () => {
-        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: [], renewalDays: ['everyday'] });
-        render();
-      });
-
-      variablesList.addEventListener('input', (e) => {
-        const target = e.target;
-        const variableItem = target.closest('.variable-item');
-        if (!variableItem) return;
-
-        const index = variableItem.dataset.index;
-        
-        if (target.matches('[data-key]')) {
-          servers[index][target.dataset.key] = target.value;
-        }
-      });
-
-      variablesList.addEventListener('click', (e) => {
-        const target = e.target;
-        const variableItem = target.closest('.variable-item');
-        if (!variableItem) return;
-
-        const index = variableItem.dataset.index;
-
-        if (target.classList.contains('btn-toggle-details')) {
-          const details = variableItem.querySelector('.variable-details');
-          details.style.display = details.style.display === 'none' ? 'block' : 'none';
-          target.textContent = details.style.display === 'none' ? '详情' : '收起';
-        } else if (target.classList.contains('btn-add-time')) {
-          const timeInputsContainer = variableItem.querySelector('.time-inputs');
-          timeInputsContainer.appendChild(createTimeInput(''));
-        } else if (target.classList.contains('btn-delete-time')) {
-          target.closest('.time-input-group').remove();
-        } else if (target.classList.contains('btn-delete')) {
-          servers.splice(index, 1);
-          render();
-        } else if (target.classList.contains('day-btn')) {
-          const day = target.dataset.day;
-          const daySelector = target.parentElement;
-          
-          if (day === 'everyday') {
-            daySelector.querySelectorAll('.day-btn').forEach(btn => {
-              btn.classList.remove('active');
-            });
-            target.classList.add('active');
-          } else {
-            daySelector.querySelector('[data-day="everyday"]').classList.remove('active');
-            target.classList.toggle('active');
-          }
-        }
-      });
-
-      saveAllBtn.addEventListener('click', () => {
-        // Before saving, collect all time inputs and day selections for each server
-        document.querySelectorAll('.variable-item').forEach((item, index) => {
-          const timeInputs = item.querySelectorAll('.time-input');
-          const renewalTimes = Array.from(timeInputs).map(input => input.value).filter(Boolean);
-          servers[index].renewalTimes = renewalTimes;
-
-          const dayButtons = item.querySelectorAll('.day-btn.active');
-          const renewalDays = Array.from(dayButtons).map(btn => btn.dataset.day);
-          servers[index].renewalDays = renewalDays.length > 0 ? renewalDays : ['everyday'];
+        servers.push({
+          name: '',
+          serverId: '',
+          apiKey: '',
+          renewUrl: '',
+          renewalTimes: ['08:00'],
+          renewalDays: ['everyday']
         });
-        
+        render();
+        const newItem = variablesList.lastElementChild;
+        const details = newItem.querySelector('.variable-details');
+        details.style.display = 'block';
+        newItem.querySelector('[data-key="name"]').focus();
+      });
+      saveAllBtn.addEventListener('click', () => {
+        const updatedServers = [];
+        variablesList.querySelectorAll('.variable-item').forEach((item, index) => {
+          const serverData = servers[item.dataset.index];
+          const updatedServer = {
+            name: item.querySelector('[data-key="name"]').value,
+            serverId: item.querySelector('[data-key="serverId"]').value,
+            apiKey: item.querySelector('[data-key="apiKey"]').value,
+            renewUrl: item.querySelector('[data-key="renewUrl"]').value,
+            renewalTimes: Array.from(item.querySelectorAll('.time-input-group input')).map(input => input.value).filter(Boolean),
+            renewalDays: serverData.renewalDays // This is updated directly on click
+          };
+          updatedServers.push(updatedServer);
+        });
+        servers = updatedServers;
         fetch('/api/variables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(servers)
         }).then(response => {
           if (response.ok) {
-            alert('保存成功!');
+            alert('保存成功！');
+            render(); // Re-render to reflect new indices and clean data
           } else {
-            alert('保存失败!');
+            alert('保存失败。');
           }
         });
       });
-
-      const globalScheduleActions = document.getElementById('global-schedule-actions');
-      globalScheduleActions.addEventListener('click', e => {
-        if (e.target.classList.contains('day-btn')) {
-          const day = e.target.dataset.day;
-          const btn = e.target;
-          
-          let newDays;
-
-          // Manage active state of global buttons
-          if (day === 'everyday') {
-            globalScheduleActions.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            newDays = ['everyday'];
-          } else {
-            globalScheduleActions.querySelector('[data-day="everyday"]').classList.remove('active');
-            btn.classList.toggle('active');
-            
-            const activeBtns = globalScheduleActions.querySelectorAll('.day-btn.active');
-            newDays = Array.from(activeBtns).map(b => b.dataset.day);
-            if (newDays.length === 0) {
-              // If no days are selected, default to everyday
-              globalScheduleActions.querySelector('[data-day="everyday"]').classList.add('active');
-              newDays = ['everyday'];
+        document.getElementById('refresh-status').addEventListener('click', () => {
+            alert('刷新功能待实现');
+        });
+        document.getElementById('trigger-all').addEventListener('click', async () => {
+            if (!confirm('确定要立即触发所有服务器的续期吗？此操作不可逆。')) {
+                return;
             }
-          }
-
-          // Apply to all servers
-          servers.forEach(server => {
-            server.renewalDays = [...newDays];
-          });
-          
-          render();
-        }
-      });
+            try {
+                const response = await fetch('/api/trigger', { method: 'POST' });
+                if (response.ok) {
+                    const result = await response.text();
+                    alert('触发成功！\n' + result);
+                } else {
+                    const error = await response.text();
+                    alert('触发失败：' + error);
+                }
+            } catch (err) {
+                alert('请求失败：' + err.message);
+            }
+        });
     });
   </script>
 </body>

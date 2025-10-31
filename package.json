@@ -6,12 +6,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "build": "esbuild index.js --bundle --outfile=dist/worker.js --format=esm --target=es2020 --loader:.js=js"
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "author": "Pungwing",
   "license": "MIT",
-  "devDependencies": {
-    "esbuild": "^0.20.2"
+  "dependencies": {
+    "hono": "^4.0.0"
   }
 }
