@@ -849,6 +849,7 @@ export default {
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    let originalRequest = request.clone();
 
     // 认证中间件
     if (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/login')) {
@@ -864,7 +865,7 @@ export default {
 
     // API 路由
     if (url.pathname === '/api/login' && request.method === 'POST') {
-      return handleLogin(request, env);
+      return handleLogin(originalRequest, env);
     }
     if (url.pathname === '/api/logout') {
       return handleLogout();
@@ -873,7 +874,7 @@ export default {
       return handleGetVariables(env);
     }
     if (url.pathname === '/api/variables' && request.method === 'POST') {
-      return handleSetVariables(request, env);
+      return handleSetVariables(originalRequest, env);
     }
     if (url.pathname === '/api/trigger' && request.method === 'POST') {
       return handleTriggerAll(env);
