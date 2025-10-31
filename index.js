@@ -295,7 +295,7 @@ const loginHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale-1.0">
   <title>登录 - 续期管理</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -343,7 +343,7 @@ const indexHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale-1.0">
   <title>续期管理面板</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -502,426 +502,473 @@ const indexHtml = `<!DOCTYPE html>
           details.style.display = details.style.display === 'none' ? 'block' : 'none';
         });
         serverElement.querySelector('.btn-delete').addEventListener('click', () => {
-          if (confirm(`确定要删除服务器 "${server.name || server.serverId}" 吗?`)) {
+          if (confirm(`确定要删除服务器 "${server.name || '新服务器'}" 吗?`)) {
             servers.splice(index, 1);
             render();
           }
         });
-        serverElement.querySelector('.btn-add-time').addEventListener('click', () => {
-          if (!servers[index].renewalTimes) {
-            servers[index].renewalTimes = [];
-          }
-          servers[index].renewalTimes.push('01:00');
-          renderServer(server, index);
+        serverElement.querySelector('.btn-add-time').addEventListener('click', (e) => {
+          const container = e.target.previousElementSibling;
+          container.appendChild(createTimeInput(''));
         });
         return serverElement;
       }
       function createTimeInput(time) {
-        const container = document.createElement('div');
-        container.className = 'time-input-group';
-        
+        const div = document.createElement('div');
+        div.className = 'time-input-group';
         const input = document.createElement('input');
         input.type = 'time';
         input.value = time;
-        
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn-delete-time';
         deleteBtn.innerHTML = '&times;';
-        
-        container.appendChild(input);
-        container.appendChild(deleteBtn);
-        return container;
-      }
-      function renderServer(server, index) {
-        const oldElement = variablesList.querySelector(`[data-index="${index}"]`);
-        const newElement = createServerElement(server, index);
-        if (oldElement) {
-          variablesList.replaceChild(newElement, oldElement);
-        } else {
-          variablesList.appendChild(newElement);
-        }
+        deleteBtn.onclick = () => div.remove();
+        div.appendChild(input);
+        div.appendChild(deleteBtn);
+        return div;
       }
       function render() {
         variablesList.innerHTML = '';
         servers.forEach((server, index) => {
-          const serverElement = createServerElement(server, index);
-          variablesList.appendChild(serverElement);
+          variablesList.appendChild(createServerElement(server, index));
         });
       }
       addVariableBtn.addEventListener('click', () => {
-        servers.push({ name: '', serverId: '', apiKey: '', renewUrl: '', renewalTimes: ['01:00'], renewalDays: ['everyday'] });
+        servers.push({
+          name: '',
+          serverId: '',
+          apiKey: '',
+          renewUrl: '',
+          renewalTimes: ['08:00'],
+          renewalDays: ['everyday']
+        });
         render();
+        const newItem = variablesList.lastElementChild;
+        const details = newItem.querySelector('.variable-details');
+        details.style.display = 'block';
+        newItem.querySelector('[data-key="name"]').focus();
       });
       saveAllBtn.addEventListener('click', () => {
         const updatedServers = [];
         variablesList.querySelectorAll('.variable-item').forEach((item, index) => {
-          const serverData = { ...servers[index] };
-          item.querySelectorAll('input[data-key]').forEach(input => {
-            serverData[input.dataset.key] = input.value;
-          });
-          const timeInputs = item.querySelectorAll('.time-inputs input[type="time"]');
-          serverData.renewalTimes = Array.from(timeInputs).map(input => input.value);
-          const activeDayButtons = item.querySelectorAll('.day-selector .day-btn.active');
-          serverData.renewalDays = Array.from(activeDayButtons).map(btn => btn.dataset.day);
-          updatedServers.push(serverData);
+          const serverData = servers[item.dataset.index];
+          const updatedServer = {
+            name: item.querySelector('[data-key="name"]').value,
+            serverId: item.querySelector('[data-key="serverId"]').value,
+            apiKey: item.querySelector('[data-key="apiKey"]').value,
+            renewUrl: item.querySelector('[data-key="renewUrl"]').value,
+            renewalTimes: Array.from(item.querySelectorAll('.time-input-group input')).map(input => input.value).filter(Boolean),
+            renewalDays: serverData.renewalDays // This is updated directly on click
+          };
+          updatedServers.push(updatedServer);
         });
         servers = updatedServers;
         fetch('/api/variables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(servers),
-        })
-        .then(response => {
+          body: JSON.stringify(servers)
+        }).then(response => {
           if (response.ok) {
-            alert('保存成功!');
-            render(); 
+            alert('保存成功！');
+            render(); // Re-render to reflect new indices and clean data
           } else {
             alert('保存失败。');
           }
         });
       });
-    document.getElementById('refresh-status').addEventListener('click', async () => {
-        const response = await fetch('/api/get-status');
-        if (response.ok) {
-            const statuses = await response.json();
-            updateStatusIndicators(statuses);
-            alert('状态已刷新!');
-        } else {
-            alert('刷新状态失败。');
-        }
-    });
-    document.getElementById('trigger-all').addEventListener('click', async () => {
-        if (confirm('确定要立即触发所有服务器的续期吗? 这将忽略计划时间。')) {
-            const response = await fetch('/api/trigger-all', { method: 'POST' });
-            const result = await response.text();
-            alert(result);
-        }
-    });
-    function updateStatusIndicators(statuses) {
-        variablesList.querySelectorAll('.variable-item').forEach((item) => {
-            const serverId = item.querySelector('[data-key="serverId"]').value;
-            const statusIndicator = item.querySelector('.status-indicator');
-            if (statuses[serverId]) {
-                const { success, timestamp } = statuses[serverId];
-                statusIndicator.textContent = `${success ? '✅' : '❌'} (${new Date(timestamp).toLocaleTimeString()})`;
-                statusIndicator.title = `最后续期于 ${new Date(timestamp).toLocaleString()}`;
-            } else {
-                statusIndicator.textContent = '...';
-                statusIndicator.title = '尚无状态信息';
+        document.getElementById('refresh-status').addEventListener('click', () => {
+            alert('刷新功能待实现');
+        });
+        document.getElementById('trigger-all').addEventListener('click', async () => {
+            if (!confirm('确定要立即触发所有服务器的续期吗？此操作不可逆。')) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/trigger', { method: 'POST' });
+                if (response.ok) {
+                    const result = await response.text();
+                    alert('触发成功！\n' + result);
+                } else {
+                    const error = await response.text();
+                    alert('触发失败：' + error);
+                }
+            } catch (err) {
+                alert('请求失败：' + err.message);
             }
         });
-    }
     });
   </script>
 </body>
 </html>
 `;
-// --- 工具函数 ---
-const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), {
-  headers: {
-    'Content-Type': 'application/json;charset=UTF-8'
-  },
-  status
-});
-const textResponse = (text, status = 200, headers = {}) => new Response(text, {
-  status,
-  headers: {
-    'Content-Type': 'text/plain;charset=UTF-8',
-    ...headers
-  }
-});
-const htmlResponse = (html, status = 200) => new Response(html, {
-  headers: {
-    'Content-Type': 'text/html;charset=UTF-8'
-  },
-  status
-});
-// --- 核心业务逻辑 ---
-/**
- * 获取服务器配置
- * @param {any} env
- */
-async function getServersConfig(env) {
-  const configStr = await env.KV.get(KV_CONFIG_KEY);
-  return configStr ? JSON.parse(configStr) : [];
-}
-/**
- * 保存服务器配置
- * @param {any} env
- * @param {any[]} config
- */
-async function saveServersConfig(env, config) {
-  await env.KV.put(KV_CONFIG_KEY, JSON.stringify(config, null, 2));
-}
-/**
- * 发送续期请求
- * @param {{ renewUrl: string; serverId: string; apiKey: string; name: any; }} server
- */
-async function renewServer(server) {
-  const {
-    renewUrl,
-    serverId,
-    apiKey,
-    name
-  } = server;
-  if (!renewUrl || !serverId || !apiKey) {
-    return {
-      success: false,
-      message: `服务器 ${name || serverId} 的配置不完整，缺少 renewUrl, serverId, 或 apiKey。`
-    };
-  }
-  try {
-    const response = await fetch(renewUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        server_id: serverId,
-        api_key: apiKey
-      }),
-    });
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success) {
-        return {
-          success: true,
-          message: `服务器 ${name || serverId} 续期成功。`
-        };
-      } else {
-        return {
-          success: false,
-          message: `服务器 ${name || serverId} 续期失败: ${result.message || '未知错误'}`
-        };
-      }
-    } else {
-      const errorText = await response.text();
-      return {
-        success: false,
-        message: `服务器 ${name || serverId} 续期请求失败: ${response.status} ${response.statusText}. 响应: ${errorText}`
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: `服务器 ${name || serverId} 续期时发生网络错误: ${error.message}`
-    };
-  }
-}
-/**
- * 发送 Telegram 通知
- * @param {string} message
- * @param {any} env
- */
-async function sendTelegramNotification(message, env) {
-  const {
-    TELEGRAM_BOT_TOKEN,
-    TELEGRAM_CHAT_ID
-  } = env;
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log("未配置 Telegram 通知所需的环境变量。");
-    return;
-  }
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown'
-      }),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`发送 Telegram 通知失败: ${response.status} ${errorBody}`);
-    }
-  } catch (error) {
-    console.error(`发送 Telegram 通知时发生网络错误: ${error}`);
-  }
-}
-/**
- * 检查并触发所有服务器的续期
- * @param {any} env
- * @param {boolean} force
- */
-async function checkAndRenewAll(env, force = false) {
-  const servers = await getServersConfig(env);
-  const now = new Date(new Date().toLocaleString('en-US', {
-    timeZone: 'Asia/Shanghai'
-  }));
-  const currentDay = now.getDay().toString();
-  const currentTime = now.toTimeString().slice(0, 5);
-  let logs = [];
-  for (const server of servers) {
-    const renewalDays = server.renewalDays || ['everyday'];
-    const shouldRenewToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
-    const shouldRenewNow = server.renewalTimes && server.renewalTimes.includes(currentTime);
-    if (force || (shouldRenewToday && shouldRenewNow)) {
-      const result = await renewServer(server);
-      logs.push(result.message);
-      // 保存状态
-      const status = {
-        success: result.success,
-        timestamp: Date.now()
-      };
-      await env.KV.put(`status_${server.serverId}`, JSON.stringify(status));
-    }
-  }
-  if (logs.length > 0) {
-    const notificationMessage = `续期任务报告 (执行时间: ${now.toLocaleString('zh-CN')}):\n\n` + logs.join('\n');
-    console.log(notificationMessage);
-    await sendTelegramNotification(notificationMessage, env);
-  } else if (force) {
-    console.log("强制触发，但没有符合条件的服务器。");
-  }
-}
+
 // --- 认证 ---
+
 /**
- * @param {string} password
- * @param {string} storedHash
- * @param {any} env
- */
-async function verifyPassword(password, storedHash, env) {
-  if (!password || !storedHash) return false;
-  const [saltHex, hashHex] = storedHash.split(':');
-  if (!saltHex || !hashHex) return false;
-  const salt = Buffer.from(saltHex, 'hex');
-  const hash = Buffer.from(hashHex, 'hex');
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), {
-    name: 'PBKDF2'
-  }, false, ['deriveBits']);
-  const derivedBits = await crypto.subtle.deriveBits({
-    name: 'PBKDF2',
-    salt,
-    iterations: parseInt(env.ITERATIONS || '100000'),
-    hash: 'SHA-256',
-  }, key, 256);
-  return Buffer.from(derivedBits).equals(hash);
-}
-async function generateSecureToken() {
-  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-/**
+ * 验证请求是否已认证
  * @param {Request} request
- * @param {any} env
+ * @param {object} env
+ * @returns {boolean}
  */
 async function isAuthenticated(request, env) {
   const cookie = request.headers.get('Cookie');
-  if (!cookie) return false;
-  const tokenMatch = cookie.match(new RegExp(`${AUTH_COOKIE_NAME}=([^;]+)`));
-  if (!tokenMatch) return false;
-  const token = tokenMatch[1];
-  const storedToken = await env.KV.get(`auth_token_${token}`);
-  return !!storedToken;
+  if (!cookie || !cookie.includes(AUTH_COOKIE_NAME)) return false;
+
+  const token = cookie.split(';').find(c => c.trim().startsWith(AUTH_COOKIE_NAME)).split('=')[1];
+  const storedToken = await env.AUTO_RENEW_KV.get("auth_token");
+
+  return token === storedToken;
 }
-// --- 路由和处理 ---
-export default {
-  async fetch(request, env, ctx) {
-    return await handleRequest(request, env).catch(
-      (err) => new Response(err.stack, {
-        status: 500
-      })
-    );
-  },
-  async scheduled(event, env, ctx) {
-    ctx.waitUntil(checkAndRenewAll(env));
-  },
-};
+
 /**
- * @param {Request} request
- * @param {any} env
+ * 创建一个安全的认证令牌
+ * @returns {string}
  */
-async function handleRequest(request, env) {
-  const url = new URL(request.url);
-  const path = url.pathname;
-  // 静态资源
-  if (path === '/style.css') {
-    return new Response(styleCss, {
-      headers: {
-        'Content-Type': 'text/css'
-      }
+function createAuthToken() {
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+  return Buffer.from(randomBytes).toString('hex');
+}
+
+
+// --- 路由处理 ---
+
+/**
+ * 处理登录请求
+ * @param {Request} request
+ * @param {object} env
+ * @returns {Response}
+ */
+async function handleLogin(request, env) {
+  const formData = await request.formData();
+  const username = formData.get('username');
+  const password = formData.get('password');
+  
+  const storedUser = env.AUTH_USERNAME || "admin";
+  const storedPass = env.AUTH_PASSWORD || "password";
+  
+  if (username === storedUser && password === storedPass) {
+    const token = createAuthToken();
+    await env.AUTO_RENEW_KV.put("auth_token", token, { expirationTtl: 86400 }); // 24小时过期
+    
+    return new Response('登录成功', {
+      status: 200,
+      headers: { 'Set-Cookie': `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict` },
     });
+  } else {
+    return new Response('用户名或密码错误', { status: 401 });
   }
-  if (path === '/login.html') {
-    return htmlResponse(loginHtml);
+}
+
+/**
+ * 处理登出请求
+ * @returns {Response}
+ */
+function handleLogout() {
+  return new Response('登出成功', {
+    status: 200,
+    headers: { 'Set-Cookie': `${AUTH_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT` },
+  });
+}
+
+/**
+ * 获取服务器配置
+ * @param {object} env
+ * @returns {Response}
+ */
+async function handleGetVariables(env) {
+  const config = await getServersConfig(env);
+  return new Response(JSON.stringify(config), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * 保存服务器配置
+ * @param {Request} request
+ * @param {object} env
+ * @returns {Response}
+ */
+async function handleSetVariables(request, env) {
+  try {
+    const variables = await request.json();
+    await env.AUTO_RENEW_KV.put(KV_CONFIG_KEY, JSON.stringify(variables));
+    return new Response('保存成功', { status: 200 });
+  } catch (e) {
+    return new Response('保存失败: ' + e.message, { status: 500 });
   }
-  // API 路由
-  if (path.startsWith('/api/')) {
-    // 登录接口不需要认证
-    if (path === '/api/login' && request.method === 'POST') {
-      const formData = await request.formData();
-      const username = formData.get('username');
-      const password = formData.get('password');
-      if (username === env.AUTH_USER) {
-        // 从环境变量中读取存储的哈希
-        const storedPasswordHash = env.AUTH_PASS_HASH;
-        if (await verifyPassword(password, storedPasswordHash, env)) {
-          const token = await generateSecureToken();
-          await env.KV.put(`auth_token_${token}`, 'valid', {
-            expirationTtl: 86400
-          }); // 24小时有效
-          return textResponse("登录成功", 200, {
-            'Set-Cookie': `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`
-          });
-        }
-      }
-      return textResponse("用户名或密码错误", 401);
+}
+
+/**
+ * 立即触发所有续期任务
+ * @param {object} env
+ * @returns {Response}
+ */
+async function handleTriggerAll(env) {
+    console.log("[手动触发] 开始执行所有续期任务...");
+    try {
+        const results = await handleScheduled(env);
+        console.log("[手动触发] 执行完成。");
+        return new Response(`手动触发完成。\n${results}`, { status: 200 });
+    } catch (e) {
+        console.error("[手动触发] 执行失败:", e);
+        return new Response('手动触发失败: ' + e.message, { status: 500 });
     }
-    // 登出接口
-    if (path === '/api/logout') {
-      return textResponse("已登出", 200, {
-        'Set-Cookie': `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`
-      });
+}
+
+
+// --- 核心逻辑 ---
+
+/**
+ * 从 KV 或环境变量中获取服务器配置
+ * @param {object} env
+ * @returns {Array}
+ */
+async function getServersConfig(env) {
+    let configStr = await env.AUTO_RENEW_KV.get(KV_CONFIG_KEY);
+    // 如果 KV 中没有，则尝试从环境变量中获取
+    if (!configStr && env.SERVERS_CONFIG) {
+        configStr = env.SERVERS_CONFIG;
     }
-    // 后续所有 API 请求都需要认证
-    if (!await isAuthenticated(request, env)) {
-      return textResponse("未授权", 401);
+
+    if (!configStr) {
+        return [];
     }
-    if (path === '/api/variables') {
-      if (request.method === 'GET') {
-        const config = await getServersConfig(env);
-        return jsonResponse(config);
-      } else if (request.method === 'POST') {
+    
+    try {
+        return JSON.parse(configStr);
+    } catch (e) {
+        console.error("解析服务器配置失败:", e);
+        // 如果解析失败，检查是否是 Base64 编码的字符串
         try {
-          const newConfig = await request.json();
-          await saveServersConfig(env, newConfig);
-          return jsonResponse({
-            success: true,
-            message: "配置已保存"
-          });
-        } catch (e) {
-          return jsonResponse({
-            success: false,
-            message: "请求体无效"
-          }, 400);
+            return JSON.parse(Buffer.from(configStr, 'base64').toString());
+        } catch (e2) {
+            console.error("解析 Base64 编码的配置也失败了:", e2);
+            return [];
         }
+    }
+}
+
+
+/**
+ * 发送 Telegram 通知
+ * @param {string} message - 要发送的消息
+ * @param {object} env - 环境变量
+ */
+async function sendTelegramNotification(message, env) {
+  const botToken = env.TG_BOT_TOKEN;
+  const chatId = env.TG_CHAT_ID;
+
+  if (!botToken || !chatId) {
+    console.log("未配置 Telegram Bot Token 或 Chat ID，跳过发送通知。");
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const payload = {
+    chat_id: chatId,
+    text: message,
+    parse_mode: 'Markdown',
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const respText = await response.text();
+      console.error(`发送 Telegram 通知失败: ${response.status} ${respText}`);
+    } else {
+        console.log("Telegram 通知发送成功。");
+    }
+  } catch (e) {
+    console.error(`发送 Telegram 通知异常: ${e.message}`);
+  }
+}
+
+
+// --- 定时任务 ---
+
+/**
+ * 处理 OptikLink API 保活请求
+ * @param {object} env - Cloudflare Worker 的环境对象
+ */
+async function handleOptikLinkKeepAlive(env) {
+  const apiKey = env.OPTIKLINK_API_KEY;
+  const serverId = env.OPTIKLINK_SERVER_ID;
+
+  if (!apiKey || !serverId) {
+    console.log("[OptikLink] 缺少 API_KEY 或 SERVER_ID，跳过保活。");
+    return;
+  }
+
+  const keepAliveUrl = `https://control.optiklink.com/api/client/servers/${serverId}/players`;
+  const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+
+  console.log(`[OptikLink] [${new Date().toLocaleString()}] 🟢 开始保活请求...`);
+
+  try {
+    const response = await fetch(keepAliveUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'User-Agent': userAgent,
+      },
+    });
+
+    const httpCode = response.status;
+
+    if (httpCode === 200) {
+      console.log(`[OptikLink] [${new Date().toLocaleString()}] ✅ 保活成功 (HTTP 200)`);
+    } else if (httpCode === 403) {
+      console.log(`[OptikLink] [${new Date().toLocaleString()}] ❌ 无访问权限 (HTTP 403)`);
+    } else if (httpCode === 404) {
+      console.log(`[OptikLink] [${new Date().toLocaleString()}] ⚠️ 未找到服务器 (HTTP 404)`);
+    } else if (httpCode === 419) {
+      console.log(`[OptikLink] [${new Date().toLocaleString()}] ⚠️ 授权过期或无效 (HTTP 419)`);
+    } else {
+      console.log(`[OptikLink] [${new Date().toLocaleString()}] ⚠️ 保活失败，返回码: ${httpCode}`);
+    }
+  } catch (error) {
+    console.error(`[OptikLink] [${new Date().toLocaleString()}] 💥 保活请求异常:`, error);
+  }
+}
+
+/**
+ * Cloudflare Worker 的入口点
+ */
+export default {
+  /**
+   * 处理 HTTP 请求
+   * @param {Request} request - 收到的请求对象
+   * @param {object} env - 环境变量
+   * @param {object} ctx - 执行上下文
+   * @returns {Response}
+   */
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // 认证中间件
+    if (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/login')) {
+      if (!await isAuthenticated(request, env)) {
+        return new Response('Unauthorized', { status: 401 });
       }
     }
-    if (path === '/api/get-status' && request.method === 'GET') {
-      const servers = await getServersConfig(env);
-      const statuses = {};
-      for (const server of servers) {
-        const statusStr = await env.KV.get(`status_${server.serverId}`);
-        if (statusStr) {
-          statuses[server.serverId] = JSON.parse(statusStr);
-        }
+     if (url.pathname === '/') {
+      if (!await isAuthenticated(request, env)) {
+        return Response.redirect(new URL('/login.html', request.url), 302);
       }
-      return jsonResponse(statuses);
     }
-    if (path === '/api/trigger-all' && request.method === 'POST') {
-      await checkAndRenewAll(env, true);
-      return textResponse("已触发所有服务器续期任务。");
+
+    // API 路由
+    if (url.pathname === '/api/login' && request.method === 'POST') {
+      return handleLogin(request, env);
     }
-    return textResponse("API 路由未找到", 404);
+    if (url.pathname === '/api/logout') {
+      return handleLogout();
+    }
+    if (url.pathname === '/api/variables' && request.method === 'GET') {
+      return handleGetVariables(env);
+    }
+    if (url.pathname === '/api/variables' && request.method === 'POST') {
+      return handleSetVariables(request, env);
+    }
+    if (url.pathname === '/api/trigger' && request.method === 'POST') {
+      return handleTriggerAll(env);
+    }
+    
+    // 静态资源服务
+    if (url.pathname === '/') {
+      return new Response(indexHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    }
+    if (url.pathname === '/login.html') {
+      return new Response(loginHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    }
+    if (url.pathname === '/style.css') {
+      return new Response(styleCss, { headers: { 'Content-Type': 'text/css;charset=UTF-8' } });
+    }
+    
+    return new Response('Not Found', { status: 404 });
+  },
+
+  /**
+   * 处理定时任务
+   * @param {ScheduledEvent} event - 定时事件对象
+   * @param {object} env - 环境变量
+   * @param {object} ctx - 执行上下文
+   */
+  async scheduled(event, env, ctx) {
+     console.log(`[定时任务] 开始执行 - ${new Date().toLocaleString()}`);
+    ctx.waitUntil(handleScheduled(env));
+    ctx.waitUntil(handleOptikLinkKeepAlive(env));
   }
-  // UI 界面
-  if (!await isAuthenticated(request, env)) {
-    return Response.redirect(new URL('/login.html', request.url).toString(), 302);
+};
+
+/**
+ * 处理定时续期任务的核心逻辑
+ * @param {object} env - 环境变量
+ */
+async function handleScheduled(env) {
+  const config = await getServersConfig(env);
+  if (!config || config.length === 0) {
+    console.log("[定时任务] 未找到服务器配置，跳过执行。");
+    return;
   }
-  return htmlResponse(indexHtml);
+
+  const now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000); // UTC+8
+  const currentHour = now.getUTCHours().toString().padStart(2, '0');
+  const currentMinute = now.getUTCMinutes().toString().padStart(2, '0');
+  const currentTime = `${currentHour}:${currentMinute}`;
+  const currentDay = now.getUTCDay().toString(); // 0 for Sunday, 1 for Monday, etc.
+
+  console.log(`[定时任务] 当前时间 (UTC+8): ${currentTime}, 星期: ${currentDay}`);
+
+  const results = [];
+
+  for (const server of config) {
+    if (!server.serverId || !server.apiKey || !server.renewUrl || !server.renewalTimes) {
+      console.log(`[定时任务] 服务器 "${server.name || server.serverId}" 配置不完整，跳过。`);
+      continue;
+    }
+    
+    const renewalDays = server.renewalDays || ['everyday'];
+    const shouldRunToday = renewalDays.includes('everyday') || renewalDays.includes(currentDay);
+
+    if (shouldRunToday && server.renewalTimes.includes(currentTime)) {
+      console.log(`[定时任务] 触发服务器 "${server.name || server.serverId}" 的续期...`);
+      
+      try {
+        const response = await fetch(server.renewUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': server.apiKey,
+          },
+          body: JSON.stringify({ server_id: server.serverId }),
+        });
+
+        const resultText = await response.text();
+        const status = response.ok ? '✅ 成功' : '❌ 失败';
+        const logMessage = `[定时任务] ${server.name || server.serverId}: ${status} - ${response.status} ${resultText}`;
+        console.log(logMessage);
+        results.push(logMessage);
+
+      } catch (e) {
+        const errorMessage = `[定时任务] ${server.name || server.serverId}: 💥 异常 - ${e.message}`;
+        console.error(errorMessage);
+        results.push(errorMessage);
+      }
+    }
+  }
+
+  if (results.length > 0) {
+    const summary = `Gamechi 自动续期报告 (共 ${results.length} 条):\n\n` + results.join('\n');
+    await sendTelegramNotification(summary, env);
+    return summary;
+  } else {
+    console.log("[定时任务] 没有在当前时间点需要续期的服务器。");
+    return "没有在当前时间点需要续期的服务器。";
+  }
 }
