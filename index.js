@@ -288,6 +288,24 @@ input:focus {
   background-color: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+}
+.interval-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.interval-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.interval-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }`;
 
 const indexHtml = `<!DOCTYPE html>
@@ -362,6 +380,12 @@ const indexHtml = `<!DOCTYPE html>
               <button class="day-btn" data-day="0">日</button>
             </div>
           </div>
+          <div class="form-group full-width">
+            <label>续期间隔 (分钟)</label>
+            <div class="interval-selector">
+              <input type="text" data-key="renewalInterval" placeholder="例如：1, 30, 60">
+            </div>
+          </div>
         </div>
         <div class="actions">
           <button class="btn btn-delete">删除服务器</button>
@@ -399,12 +423,14 @@ const indexHtml = `<!DOCTYPE html>
         const serverIdInput = serverElement.querySelector('[data-key="serverId"]');
         const apiKeyInput = serverElement.querySelector('[data-key="apiKey"]');
         const renewUrlInput = serverElement.querySelector('[data-key="renewUrl"]');
+        const renewalIntervalInput = serverElement.querySelector('[data-key="renewalInterval"]');
         const serverName = serverElement.querySelector('.server-name');
         
         nameInput.value = server.name || '';
         serverIdInput.value = server.serverId || '';
         apiKeyInput.value = server.apiKey || '';
         renewUrlInput.value = server.renewUrl || '';
+        renewalIntervalInput.value = server.renewalInterval || '';
         serverName.textContent = server.name || '新服务器';
         const timeInputsContainer = serverElement.querySelector('.time-inputs');
         timeInputsContainer.innerHTML = '';
@@ -491,10 +517,11 @@ const indexHtml = `<!DOCTYPE html>
           apiKey: '',
           renewUrl: '',
           renewalTimes: ['08:00'],
-          renewalDays: ['everyday']
-        });
-        render();
-        const newItem = variablesList.lastElementChild;
+          renewalDays: ['everyday'],
+          renewalInterval: ''
+          });
+          render();
+          const newItem = variablesList.lastElementChild;
         const details = newItem.querySelector('.variable-details');
         details.style.display = 'block';
         newItem.querySelector('[data-key="name"]').focus();
@@ -509,7 +536,8 @@ const indexHtml = `<!DOCTYPE html>
             apiKey: item.querySelector('[data-key="apiKey"]').value,
             renewUrl: item.querySelector('[data-key="renewUrl"]').value,
             renewalTimes: Array.from(item.querySelectorAll('.time-input-group input')).map(input => input.value).filter(Boolean),
-            renewalDays: serverData.renewalDays // This is updated directly on click
+            renewalDays: serverData.renewalDays, // This is updated directly on click
+            renewalInterval: item.querySelector('[data-key="renewalInterval"]').value
           };
           updatedServers.push(updatedServer);
         });
@@ -798,7 +826,19 @@ async function handleScheduled(env) {
       continue;
     }
     const renewalDays = server.renewalDays || ['everyday'];
-    if ((renewalDays.includes('everyday') || renewalDays.includes(currentDay)) && server.renewalTimes.includes(currentTime)) {
+    const renewalInterval = parseInt(server.renewalInterval, 10);
+    let needsRenewal = false;
+
+    if (!isNaN(renewalInterval) && renewalInterval > 0) {
+      const currentMinuteOfDay = now.getUTCHours() * 60 + now.getUTCMinutes();
+      if (currentMinuteOfDay % renewalInterval === 0) {
+        needsRenewal = true;
+      }
+    } else {
+      needsRenewal = (renewalDays.includes('everyday') || renewalDays.includes(currentDay)) && server.renewalTimes.includes(currentTime);
+    }
+    
+    if (needsRenewal) {
       console.log(`[定时任务] 触发服务器 "${server.name || server.serverId}" 的续期...`);
       try {
         const response = await fetch(server.renewUrl, {

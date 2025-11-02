@@ -42,3 +42,6 @@ SERVERS_CONFIG = ""
 OPTIKLINK_API_KEY = "DIWoNePvXkgzBxGzjK9nUy6FaWuFvaCPeLEV9rULAVNRlMMA"
 OPTIKLINK_SERVER_ID = "0ca09744-69d2-4760-aff9-76991e89df0f"
 
+[triggers]
+crons = ["* * * * *"]
+
